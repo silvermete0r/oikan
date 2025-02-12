@@ -18,7 +18,7 @@ OIKAN (Optimized Implementation of Kolmogorov-Arnold Networks) is a PyTorch-base
 ```bash
 git clone https://github.com/silvermete0r/OIKAN.git
 cd OIKAN
-pip install -r requirements.txt
+pip install -e .  # Install in development mode
 ```
 
 ## Quick Start

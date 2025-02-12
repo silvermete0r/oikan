@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oikan"
-version = "0.0.1"
+version = "0.0.1.1"
 description = "OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks"
 authors = [{name = "Arman Zhalgasbayev"}]
 dependencies = [
@@ -13,4 +13,12 @@ dependencies = [
     "sympy",
     "scipy",
     "matplotlib"
+]
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]

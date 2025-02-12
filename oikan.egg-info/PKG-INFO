@@ -1,10 +1,65 @@
 Metadata-Version: 2.2
 Name: oikan
-Version: 0.0.1
+Version: 0.0.1.1
 Summary: OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks
 Author: Arman Zhalgasbayev
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
 Requires-Dist: torch
 Requires-Dist: numpy
 Requires-Dist: sympy
 Requires-Dist: scipy
 Requires-Dist: matplotlib
+
+# OIKAN Library
+
+[![PyPI version](https://badge.fury.io/py/oikan.svg)](https://badge.fury.io/py/oikan)
+[![PyPI downloads](https://img.shields.io/pypi/dm/oikan.svg)](https://pypistats.org/packages/oikan)
+
+OIKAN (Optimized Implementation of Kolmogorov-Arnold Networks) is a PyTorch-based library for creating interpretable neural networks. It implements the KAN architecture to provide both accurate predictions and interpretable results.
+
+## Key Features
+
+- EfficientKAN layer implementation
+- Built-in visualization tools
+- Support for both regression and classification tasks
+- Symbolic formula extraction
+- Easy-to-use training interface
+
+## Installation
+
+```bash
+git clone https://github.com/silvermete0r/OIKAN.git
+cd OIKAN
+pip install -e .  # Install in development mode
+```
+
+## Quick Start
+
+### Regression Example
+```python
+from oikan.model import OIKAN
+from oikan.trainer import train
+
+# Create and train model
+model = OIKAN(input_dim=2, output_dim=1)
+train(model, train_loader)
+
+# Extract interpretable formula
+formula = extract_symbolic_formula_regression(model, X)
+```
+
+### Classification Example
+```python
+model = OIKAN(input_dim=2, output_dim=2)
+train_classification(model, train_loader)
+visualize_classification(model, X, y)
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

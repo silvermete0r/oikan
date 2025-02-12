@@ -16,9 +16,8 @@ def train(model, train_loader, epochs=100, lr=0.01):
 
     for epoch in range(epochs):
         optimizer.step(closure)
-        if epoch % 10 == 0:
-            print(f"Epoch {epoch+1}/{epochs}")
-        
+        print(f"Epoch {epoch+1}/{epochs}")
+
 # Classification training
 def train_classification(model, train_loader, epochs=100, lr=0.01):
     criterion = nn.CrossEntropyLoss()
@@ -30,5 +29,4 @@ def train_classification(model, train_loader, epochs=100, lr=0.01):
         loss = criterion(outputs, train_loader[1])
         loss.backward()
         optimizer.step()
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")

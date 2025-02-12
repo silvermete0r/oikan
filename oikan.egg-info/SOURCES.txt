@@ -1,5 +1,6 @@
 README.md
 pyproject.toml
+setup.py
 oikan/__init__.py
 oikan/model.py
 oikan/symbolic.py
