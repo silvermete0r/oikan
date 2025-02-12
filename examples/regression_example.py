@@ -5,19 +5,21 @@ from oikan.trainer import train
 from oikan.visualize import visualize_regression
 from oikan.symbolic import extract_symbolic_formula_regression
 
-# Example Usage
 if __name__ == "__main__":
-    X1 = np.linspace(-1, 1, 100).reshape(-1, 1)
-    X2 = np.linspace(-1, 1, 100).reshape(-1, 1)
-    X = np.hstack((X1, X2))
-    y = np.sin(3 * X1) + np.cos(2 * X2) + 0.1 * np.random.randn(100, 1)
+    # Generate simple 1D data for demonstration
+    X = np.linspace(-5, 5, 100).reshape(-1, 1)
+    y = np.sin(X) + 0.1 * np.random.randn(100, 1)
     
-    X_train = torch.tensor(X, dtype=torch.float32)
-    y_train = torch.tensor(y, dtype=torch.float32)
-    train_loader = (X_train, y_train)
+    X_train = torch.FloatTensor(X)
+    y_train = torch.FloatTensor(y)
     
-    model = OIKAN(input_dim=2, output_dim=1)
-    train(model, train_loader)
+    # Initialize and train model
+    model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
+    train(model, (X_train, y_train), epochs=100)
+    
+    # Visualize results
     visualize_regression(model, X, y)
     
-    print("Extracted Symbolic Formula:", extract_symbolic_formula_regression(model, X))
+    # Extract and print symbolic formula
+    formula = extract_symbolic_formula_regression(model, X)
+    print("Approximate symbolic formula:", formula)

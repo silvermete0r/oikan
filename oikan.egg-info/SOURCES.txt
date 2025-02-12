@@ -3,8 +3,10 @@ pyproject.toml
 setup.py
 oikan/__init__.py
 oikan/model.py
+oikan/regularization.py
 oikan/symbolic.py
 oikan/trainer.py
+oikan/utils.py
 oikan/visualize.py
 oikan.egg-info/PKG-INFO
 oikan.egg-info/SOURCES.txt

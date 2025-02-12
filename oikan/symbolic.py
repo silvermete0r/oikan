@@ -1,36 +1,21 @@
 import torch
-from sympy import symbols, simplify, Add
+import numpy as np
 
-# Regression symbolic extraction
-def extract_symbolic_formula_regression(model, input_data):
-    symbolic_vars = symbols([f'x{i}' for i in range(input_data.shape[1])])
+def extract_symbolic_formula_regression(model, X):
+    """Simple coefficient-based formula extraction"""
+    model.eval()
+    with torch.no_grad():
+        # Get weights from the first adaptive layer
+        weights = model.interpretable_layers[0].weights.numpy()
+        # Simplified representation
+        terms = []
+        for i in range(X.shape[1]):
+            coef = np.abs(weights[i]).mean()
+            if coef > 0.1:  # threshold for significance
+                terms.append(f"{coef:.2f}*x{i+1}")
     
-    with torch.no_grad():
-        weights = model.mlp[0].weight.cpu().numpy()
-        if weights.size == 0:
-            print("Warning: Extracted weights are empty.")
-            return "NaN"
+    return " + ".join(terms) if terms else "0"
 
-    formula = sum(weights[0, i] * symbolic_vars[i] for i in range(len(symbolic_vars)))
-    return simplify(formula)
-
-# Classification symbolic extraction
-def extract_symbolic_formula_classification(model, input_data):
-    """
-    Extracts a symbolic decision boundary for a two-class classifier.
-    Approximates:
-      decision = (w[0] - w[1]) · x + (b[0] - b[1])
-    where w and b are from the model's final linear layer.
-    """
-    symbolic_vars = symbols([f'x{i}' for i in range(input_data.shape[1])])
-    with torch.no_grad():
-        final_layer = model.mlp[-1]
-        w = final_layer.weight.cpu().numpy()
-        b = final_layer.bias.cpu().numpy()
-        if w.shape[0] < 2:
-            print("Classification symbolic extraction requires at least 2 classes.")
-            return "NaN"
-        w_diff = w[0] - w[1]
-        b_diff = b[0] - b[1]
-    formula = sum(w_diff[i] * symbolic_vars[i] for i in range(len(symbolic_vars))) + b_diff
-    return simplify(formula)
+def extract_symbolic_formula_classification(model, X):
+    """Extract classification boundary formula"""
+    return extract_symbolic_formula_regression(model, X) + " = 0"
