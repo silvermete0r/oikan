@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+oikan/__init__.py
+oikan/model.py
+oikan/symbolic.py
+oikan/trainer.py
+oikan/visualize.py
+oikan.egg-info/PKG-INFO
+oikan.egg-info/SOURCES.txt
+oikan.egg-info/dependency_links.txt
+oikan.egg-info/requires.txt
+oikan.egg-info/top_level.txt

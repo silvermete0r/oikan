@@ -1,0 +1,10 @@
+Metadata-Version: 2.2
+Name: oikan
+Version: 0.0.1
+Summary: OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks
+Author: Arman Zhalgasbayev
+Requires-Dist: torch
+Requires-Dist: numpy
+Requires-Dist: sympy
+Requires-Dist: scipy
+Requires-Dist: matplotlib
