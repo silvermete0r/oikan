@@ -1,6 +1,6 @@
 Metadata-Version: 2.2
 Name: oikan
-Version: 0.0.1.4
+Version: 0.0.1.5
 Summary: OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks
 Author: Arman Zhalgasbayev
 License: MIT
@@ -9,6 +9,7 @@ Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: torch
 Requires-Dist: numpy
 Requires-Dist: sympy
@@ -49,8 +50,16 @@ from oikan.symbolic import extract_symbolic_formula
 
 model = OIKAN(input_dim=2, output_dim=1)
 train(model, (X_train, y_train))
+
+visualize_regression(model, X, y)
+
 formula = extract_symbolic_formula(model, X_test, mode='regression')
 print("Extracted formula:", formula)
+
+plot_symbolic_formula(model, X_test, mode='regression')
+
+latex_formula = extract_latex_formula(model, X_test, mode='regression')
+print("LaTeX:", latex_formula)
 ```
 
 ### Classification Example
@@ -62,10 +71,14 @@ from oikan.symbolic import extract_symbolic_formula, plot_symbolic_formula, extr
 
 model = OIKAN(input_dim=2, output_dim=2)
 train_classification(model, (X_train, y_train))
+
 visualize_classification(model, X_test, y_test)
+
 formula = extract_symbolic_formula(model, X_test, mode='classification')
 print("Extracted formula:", formula)
+
 plot_symbolic_formula(model, X_test, mode='classification')
+
 latex_formula = extract_latex_formula(model, X_test, mode='classification')
 print("LaTeX:", latex_formula)
 ```
