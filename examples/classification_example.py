@@ -3,7 +3,7 @@ import numpy as np
 from oikan.model import OIKAN
 from oikan.trainer import train_classification
 from oikan.visualize import visualize_classification
-from oikan.symbolic import extract_symbolic_formula_classification
+from oikan.symbolic import extract_symbolic_formula, test_symbolic_formula, plot_symbolic_formula, extract_latex_formula
 
 if __name__ == "__main__":
     # Generate two clusters for binary classification
@@ -25,5 +25,13 @@ if __name__ == "__main__":
     visualize_classification(model, X, y)
     
     # Extract and print decision boundary
-    formula = extract_symbolic_formula_classification(model, X)
-    print("Decision boundary:", formula)
+    formula = extract_symbolic_formula(model, X, mode='classification')
+    print("Approximate symbolic formula:", formula)
+    test_symbolic_formula(model, X, mode='classification')
+
+    # Plot symbolic formula
+    plot_symbolic_formula(model, X, mode='classification')
+
+    # Get LaTeX representation of the symbolic formula
+    latex_formula = extract_latex_formula(model, X, mode='classification')
+    print("LaTeX representation of the symbolic formula:", latex_formula)
