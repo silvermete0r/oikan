@@ -122,6 +122,9 @@ def extract_latex_formula(model, X, mode='regression'):
         expr = term.strip("()")
         coeff_str, basis = expr.split("*", 1) if "*" in expr else (expr, "")
         coeff = float(coeff_str)
+        missing = basis.count("(") - basis.count(")")
+        if missing > 0:
+            basis = basis + ")" * missing
         coeff_latex = f"{abs(coeff):.2f}".rstrip("0").rstrip(".")
         term_latex = coeff_latex if basis.strip() == "1" else f"{coeff_latex} \\cdot {basis.strip()}"
         latex_terms.append(f"- {term_latex}" if coeff < 0 else f"+ {term_latex}")

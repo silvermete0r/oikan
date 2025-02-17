@@ -3,7 +3,7 @@ import numpy as np
 from oikan.model import OIKAN
 from oikan.trainer import train
 from oikan.visualize import visualize_regression
-from oikan.symbolic import extract_symbolic_formula, test_symbolic_formula, plot_symbolic_formula
+from oikan.symbolic import extract_symbolic_formula, test_symbolic_formula, plot_symbolic_formula, extract_latex_formula
 
 if __name__ == "__main__":
     # Generate simple 1D data for demonstration
@@ -27,3 +27,7 @@ if __name__ == "__main__":
 
     # Plot symbolic formula
     plot_symbolic_formula(model, X, mode='regression')
+
+    # Get LaTeX representation of the symbolic formula
+    latex_formula = extract_latex_formula(model, X, mode='regression')
+    print("LaTeX representation of the symbolic formula:", latex_formula)
