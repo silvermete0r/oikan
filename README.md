@@ -28,7 +28,8 @@ pip install -e .  # Install in development mode
 ```python
 from oikan.model import OIKAN
 from oikan.trainer import train
-from oikan.symbolic import extract_symbolic_formula
+from oikan.visualize import visualize_regression
+from oikan.symbolic import extract_symbolic_formula, plot_symbolic_formula, extract_latex_formula
 
 model = OIKAN(input_dim=2, output_dim=1)
 train(model, (X_train, y_train))

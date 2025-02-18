@@ -47,12 +47,16 @@ class EfficientKAN(nn.Module):
         return self.basis_output_dim + self.input_dim
 
 class OIKAN(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_units=10):
+    def __init__(self, input_dim, output_dim, hidden_units=10, svd_threshold=50, reduced_dim=32):
         super().__init__()
         self.efficientkan = EfficientKAN(input_dim, hidden_units)
-        
-        # Get actual feature dimension after transformation
         feature_dim = self.efficientkan.get_output_dim()
+        
+        if feature_dim > svd_threshold:
+            self.svd_projection = nn.Linear(feature_dim, reduced_dim, bias=False)
+            feature_dim = reduced_dim
+        else:
+            self.svd_projection = None
         
         self.interpretable_layers = nn.Sequential(
             AdaptiveBasisLayer(feature_dim, 32),
@@ -62,4 +66,6 @@ class OIKAN(nn.Module):
     
     def forward(self, x):
         transformed_x = self.efficientkan(x)
+        if self.svd_projection:
+            transformed_x = self.svd_projection(transformed_x)
         return self.interpretable_layers(transformed_x)
