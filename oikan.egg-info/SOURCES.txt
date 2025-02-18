@@ -3,6 +3,7 @@ README.md
 pyproject.toml
 setup.py
 oikan/__init__.py
+oikan/metrics.py
 oikan/model.py
 oikan/regularization.py
 oikan/symbolic.py

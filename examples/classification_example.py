@@ -4,10 +4,11 @@ from oikan.model import OIKAN
 from oikan.trainer import train_classification
 from oikan.visualize import visualize_classification
 from oikan.symbolic import extract_symbolic_formula, test_symbolic_formula, plot_symbolic_formula, extract_latex_formula
+from oikan.metrics import evaluate_classification
 
 if __name__ == "__main__":
     # Generate two clusters for binary classification
-    n_samples = 100
+    n_samples = 1000
     X = np.vstack([
         np.random.randn(n_samples, 2) + np.array([2, 2]),
         np.random.randn(n_samples, 2) + np.array([-2, -2])
@@ -21,6 +22,9 @@ if __name__ == "__main__":
     model = OIKAN(input_dim=2, output_dim=2, hidden_units=10)
     train_classification(model, (X_train, y_train), epochs=100)
     
+    # Evaluate classification model
+    evaluate_classification(model, X, y)
+
     # Visualize results
     visualize_classification(model, X, y)
     
