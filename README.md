@@ -7,16 +7,12 @@ A deep learning framework for interpretable neural networks using advanced basis
 [![PyPI downloads](https://img.shields.io/pypi/dm/oikan.svg)](https://pypistats.org/packages/oikan)
 
 ## Key Features
-- 🚀 Efficient Implementation - Optimized KAN architecture with SVD projection
-- 📊 Advanced Basis Functions - B-spline and Fourier basis transformations
-- 🎯 Multi-Task Support - Both regression and classification capabilities
-- 🔍 Interpretability Tools - Extract and visualize symbolic formulas
-- 📐 Mathematical Foundations - Based on Kolmogorov-Arnold representation theorem
-- 📈 Interactive Visualizations - Built-in plotting and analysis tools
-- 🧮 Symbolic Mathematics - LaTeX formula extraction and symbolic approximations
-- 🛠️ Easy Integration - Simple API design with PyTorch compatibility
-- 📝 Comprehensive Documentation - Detailed examples and API references
-- 🔬 Research Ready - Perfect for academic and industrial applications
+- 🚀 Efficient Implementation ~ Optimized KAN architecture with SVD projection
+- 📊 Advanced Basis Functions ~ B-spline and Fourier basis transformations
+- 🎯 Multi-Task Support ~ Both regression and classification capabilities
+- 🔍 Interpretability Tools ~ Extract and visualize symbolic formulas
+- 📈 Interactive Visualizations ~ Built-in plotting and analysis tools
+- 🧮 Symbolic Mathematics ~ LaTeX formula extraction and symbolic approximations
 
 ## Installation
 
