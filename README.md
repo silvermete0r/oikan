@@ -5,6 +5,9 @@ A deep learning framework for interpretable neural networks using advanced basis
 
 [![PyPI version](https://badge.fury.io/py/oikan.svg)](https://badge.fury.io/py/oikan)
 [![PyPI downloads](https://img.shields.io/pypi/dm/oikan.svg)](https://pypistats.org/packages/oikan)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub issues](https://img.shields.io/github/issues/silvermete0r/OIKAN.svg)](https://github.com/silvermete0r/oikan/issues)
+[![Docs](https://img.shields.io/badge/docs-passing-brightgreen)](https://silvermete0r.github.io/oikan/)
 
 ## Key Features
 - 🚀 Efficient Implementation ~ Optimized KAN architecture with SVD projection
