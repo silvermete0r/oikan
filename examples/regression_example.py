@@ -18,18 +18,18 @@ if __name__ == "__main__":
     model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
     train(model, (X_train, y_train), epochs=100)
     
-    # Evaluate regression performance
+    # Evaluate the regression model
     evaluate_regression(model, X, y)
     
-    # Visualize results
+    # Visualize regression results
     visualize_regression(model, X, y)
     
-    # Extract and print symbolic formula
+    # Extract and display the symbolic formula of the model
     formula = extract_symbolic_formula(model, X, mode='regression')
     print("Approximate symbolic formula:", formula)
     test_symbolic_formula(model, X, mode='regression')
 
-    # Plot symbolic formula
+    # Plot the symbolic formula
     plot_symbolic_formula(model, X, mode='regression')
 
     # Get LaTeX representation of the symbolic formula

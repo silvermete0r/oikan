@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 def evaluate_regression(model, X, y):
-    '''Evaluate regression model performance with MSE, MAE, and RMSE.'''
+    '''Evaluate regression performance by computing MSE, MAE, and RMSE.'''
     with torch.no_grad():
         y_pred = model(torch.FloatTensor(X)).numpy().ravel()
     mse = np.mean((y - y_pred)**2)
@@ -14,7 +14,7 @@ def evaluate_regression(model, X, y):
     return mse, mae, rmse
 
 def evaluate_classification(model, X, y):
-    '''Evaluate classification model accuracy.'''
+    '''Evaluate classification accuracy by comparing model predictions and true labels.'''
     with torch.no_grad():
         logits = model(torch.FloatTensor(X))
         y_pred = torch.argmax(logits, dim=1).numpy()

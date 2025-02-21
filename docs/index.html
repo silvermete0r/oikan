@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OIKAN Documentation</title>
+    <link rel="icon" href="./media/oikan_logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50">
+    <nav>
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <img src="./media/oikan_logo.png" alt="OIKAN Logo" class="h-10 w-auto">
+                    <span class="ml-3 text-xl font-semibold text-gray-800">OIKAN</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#overview" class="text-gray-600 hover:text-blue-600">Overview</a>
+                    <a href="#installation" class="text-gray-600 hover:text-blue-600">Installation</a>
+                    <a href="#examples" class="text-gray-600 hover:text-blue-600">Examples</a>
+                </div>
+                <div>
+                    <a href="https://github.com/silvermete0r/OIKAN" target="_blank" class="text-gray-600 hover:text-gray-900">
+                        <i class="fab fa-github text-2xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-section">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-white sm:text-5xl md:text-6xl">
+                    Optimized Interpretable Kolmogorov-Arnold Networks
+                </h1>
+                <p class="mt-3 max-w-md mx-auto text-base text-gray-100 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                    A deep learning framework for interpretable neural networks using advanced basis functions.
+                </p>
+                <div class="mt-5 max-w-md mx-auto flex justify-center md:mt-8">
+                    <a href="#installation" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10">
+                        Get Started
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <section id="overview" class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Architecture Overview</h2>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <img src="./media/oikan_architecture.png" alt="OIKAN Architecture" class="w-full rounded-lg">
+            </div>
+        </section>
+
+        <section id="installation" class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Installation</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Via PyPI (Recommended)</h3>
+                    <pre class="language-bash"><code>pip install oikan</code></pre>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Local Development</h3>
+                    <pre class="language-bash"><code>git clone https://github.com/silvermete0r/OIKAN.git
+cd OIKAN
+pip install -e .</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Features</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="feature-card">
+                    <div class="text-4xl mb-4 text-blue-600">🚀</div>
+                    <h3 class="text-xl font-semibold mb-2">Efficient Implementation</h3>
+                    <p class="text-gray-600">Optimized KAN architecture with SVD projection for faster training and inference.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4 text-blue-600">🔍</div>
+                    <h3 class="text-xl font-semibold mb-2">Interpretability Tools</h3>
+                    <p class="text-gray-600">Extract and visualize symbolic formulas from trained models.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4 text-blue-600">📐</div>
+                    <h3 class="text-xl font-semibold mb-2">Mathematical Foundations</h3>
+                    <p class="text-gray-600">Based on Kolmogorov-Arnold representation theorem.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="examples" class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Examples</h2>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 class="text-xl font-semibold mb-4">Complete Regression Example</h3>
+                <pre class="language-python"><code>import torch
+from oikan.model import OIKAN
+from oikan.trainer import train
+from oikan.visualize import visualize_regression
+from oikan.symbolic import extract_symbolic_formula, extract_latex_formula
+
+model = OIKAN(input_dim=2, output_dim=1)
+train(model, (X_train, y_train))
+
+visualize_regression(model, X_test, y_test)
+
+formula = extract_symbolic_formula(model, X_test, mode='regression')
+print("Symbolic Formula:", formula)
+
+latex = extract_latex_formula(model, X_test, mode='regression')
+print("LaTeX Formula:", latex)</code></pre>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">Complete Classification Example</h3>
+                <pre class="language-python"><code>import torch
+from oikan.model import OIKAN
+from oikan.trainer import train_classification
+from oikan.visualize import visualize_classification
+from oikan.symbolic import extract_symbolic_formula, plot_symbolic_formula
+
+model = OIKAN(input_dim=2, output_dim=2)
+train_classification(model, (X_train, y_train))
+
+visualize_classification(model, X_test, y_test)
+
+formula = extract_symbolic_formula(model, X_test, mode='classification')
+print("Decision Boundary Formula:", formula)
+
+plot_symbolic_formula(model, X_test, mode='classification')</code></pre>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">About OIKAN</h3>
+                    <p class="text-gray-400">An advanced deep learning framework focused on interpretability and efficiency.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="footer-link">Documentation</a></li>
+                        <li><a href="#" class="footer-link">GitHub</a></li>
+                        <li><a href="#" class="footer-link">Examples</a></li>
+                    </ul>
+                </div>  
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <div class="flex space-x-4">
+                        <a href="https://github.com/silvermete0r" target="_blank" class="footer-link"><i class="fab fa-github"></i></a>
+                        <a href="https://x.com/grembim" target="_blank" class="footer-link"><i class="fab fa-twitter"></i></a>
+                        <a href="mailto:supwithproject@gmail.com" target="_blank" class="footer-link"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-bash.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

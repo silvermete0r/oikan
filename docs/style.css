@@ -1,0 +1,90 @@
+nav {
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    width: 100%;
+    z-index: 10;
+}
+
+.hero-section {
+    padding-top: 6rem;
+    padding-bottom: 2rem;
+    background: linear-gradient(to right, #2563eb, #4f46e5);
+}
+
+.code-block {
+    position: relative;
+    border-radius: 0.5rem;
+    background-color: #1a1a1a;
+}
+
+.copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #2d2d2d;
+    border: none;
+    border-radius: 0.25rem;
+    color: #fff;
+    font-size: 0.875rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s;
+}
+
+.copy-button:hover {
+    opacity: 1;
+    background-color: #3d3d3d;
+}
+
+.feature-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    transform: scale(1);
+    transition: transform 0.2s;
+}
+
+.feature-card:hover {
+    transform: scale(1.05);
+}
+
+pre {
+    margin: 0;
+    padding: 1rem;
+}
+
+pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: #4d4d4d;
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: #5d5d5d;
+}
+
+.footer {
+    background-color: #1f2937;
+    color: white;
+    padding: 3rem 0;
+}
+
+.footer-link {
+    color: #9ca3af;
+    transition: color 0.2s;
+}
+
+.footer-link:hover {
+    color: white;
+}

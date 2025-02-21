@@ -7,15 +7,25 @@ A deep learning framework for interpretable neural networks using advanced basis
 [![PyPI downloads](https://img.shields.io/pypi/dm/oikan.svg)](https://pypistats.org/packages/oikan)
 
 ## Key Features
-- EfficientKAN layer implementation
-- Built-in visualization tools
-- Support for both regression and classification tasks
-- Symbolic formula extraction
-- Easy-to-use training interface
-- LaTeX-formatted formula extraction
+- 🚀 Efficient Implementation - Optimized KAN architecture with SVD projection
+- 📊 Advanced Basis Functions - B-spline and Fourier basis transformations
+- 🎯 Multi-Task Support - Both regression and classification capabilities
+- 🔍 Interpretability Tools - Extract and visualize symbolic formulas
+- 📐 Mathematical Foundations - Based on Kolmogorov-Arnold representation theorem
+- 📈 Interactive Visualizations - Built-in plotting and analysis tools
+- 🧮 Symbolic Mathematics - LaTeX formula extraction and symbolic approximations
+- 🛠️ Easy Integration - Simple API design with PyTorch compatibility
+- 📝 Comprehensive Documentation - Detailed examples and API references
+- 🔬 Research Ready - Perfect for academic and industrial applications
 
 ## Installation
 
+### Method 1: Via PyPI (Recommended)
+```bash
+pip install oikan
+```
+
+### Method 2: Local Development
 ```bash
 git clone https://github.com/silvermete0r/OIKAN.git
 cd OIKAN
