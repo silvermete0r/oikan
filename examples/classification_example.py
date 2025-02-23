@@ -22,20 +22,23 @@ if __name__ == "__main__":
     model = OIKAN(input_dim=2, output_dim=2, hidden_units=10)
     train_classification(model, (X_train, y_train), epochs=100)
     
-    # Evaluate classification model
-    evaluate_classification(model, X, y)
-
-    # Visualize results
-    visualize_classification(model, X, y)
+    # Save the trained model
+    torch.save(model.state_dict(), "oikan_classification_model.pth")
     
-    # Extract and print decision boundary
-    formula = extract_symbolic_formula(model, X, mode='classification')
+    # Demonstrate reusability: load the saved model
+    loaded_model = OIKAN(input_dim=2, output_dim=2, hidden_units=10)
+    loaded_model.load_state_dict(torch.load("oikan_classification_model.pth"))
+    
+    # Use the loaded model for evaluation and visualization
+    evaluate_classification(loaded_model, X, y)
+    visualize_classification(loaded_model, X, y)
+    
+    # Extract and display the symbolic formula using the loaded model
+    formula = extract_symbolic_formula(loaded_model, X, mode='classification')
     print("Approximate symbolic formula:", formula)
-    test_symbolic_formula(model, X, mode='classification')
-
-    # Plot symbolic formula
-    plot_symbolic_formula(model, X, mode='classification')
-
+    test_symbolic_formula(loaded_model, X, mode='classification')
+    plot_symbolic_formula(loaded_model, X, mode='classification')
+    
     # Get LaTeX representation of the symbolic formula
-    latex_formula = extract_latex_formula(model, X, mode='classification')
+    latex_formula = extract_latex_formula(loaded_model, X, mode='classification')
     print("LaTeX representation of the symbolic formula:", latex_formula)

@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 from .regularization import RegularizedLoss
 
-def train(model, train_data, epochs=100, lr=0.01):
-    '''Train regression model using MSE loss with regularization.'''
+def train(model, train_data, epochs=100, lr=0.01, save_path=None):
+    '''Train regression model using MSE loss with regularization.
+    Optionally save the model when training is finished if save_path is provided.
+    '''
     X_train, y_train = train_data
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
@@ -13,16 +15,20 @@ def train(model, train_data, epochs=100, lr=0.01):
     for epoch in range(epochs):
         optimizer.zero_grad()  # Reset gradients
         outputs = model(X_train)
-        # Compute loss including regularization penalties
         loss = reg_loss(outputs, y_train, X_train)
         loss.backward()  # Backpropagate errors
         optimizer.step()  # Update parameters
         
         if (epoch + 1) % 10 == 0:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+    if save_path:
+        torch.save(model.state_dict(), save_path)
+        print(f"Model saved to {save_path}")
 
-def train_classification(model, train_data, epochs=100, lr=0.01):
-    '''Train classification model using CrossEntropy loss with regularization.'''
+def train_classification(model, train_data, epochs=100, lr=0.01, save_path=None):
+    '''Train classification model using CrossEntropy loss with regularization.
+    Optionally save the model when training is finished if save_path is provided.
+    '''
     X_train, y_train = train_data
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
@@ -32,10 +38,12 @@ def train_classification(model, train_data, epochs=100, lr=0.01):
     for epoch in range(epochs):
         optimizer.zero_grad()  # Reset gradients each epoch
         outputs = model(X_train)
-        # Loss includes both cross-entropy and regularization terms
         loss = reg_loss(outputs, y_train, X_train)
         loss.backward()  # Backpropagation
         optimizer.step()  # Parameter update
         
         if (epoch + 1) % 10 == 0:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+    if save_path:
+        torch.save(model.state_dict(), save_path)
+        print(f"Model saved to {save_path}")
