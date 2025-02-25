@@ -23,11 +23,11 @@ if __name__ == "__main__":
     train_classification(model, (X_train, y_train), epochs=100)
     
     # Save the trained model
-    torch.save(model.state_dict(), "oikan_classification_model.pth")
+    torch.save(model.state_dict(), "models/oikan_classification_model.pth")
     
     # Demonstrate reusability: load the saved model
     loaded_model = OIKAN(input_dim=2, output_dim=2, hidden_units=10)
-    loaded_model.load_state_dict(torch.load("oikan_classification_model.pth"))
+    loaded_model.load_state_dict(torch.load("models/oikan_classification_model.pth"))
     
     # Use the loaded model for evaluation and visualization
     evaluate_classification(loaded_model, X, y)

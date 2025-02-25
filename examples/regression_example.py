@@ -18,20 +18,23 @@ if __name__ == "__main__":
     model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
     train(model, (X_train, y_train), epochs=100)
     
-    # Evaluate the regression model
-    evaluate_regression(model, X, y)
+    # Save the trained model
+    torch.save(model.state_dict(), "models/oikan_regression_model.pth")
     
-    # Visualize regression results
-    visualize_regression(model, X, y)
+    # Demonstrate reusability: load the saved model
+    loaded_model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
+    loaded_model.load_state_dict(torch.load("models/oikan_regression_model.pth"))
     
-    # Extract and display the symbolic formula of the model
-    formula = extract_symbolic_formula(model, X, mode='regression')
+    # Use the loaded model for evaluation and visualization
+    evaluate_regression(loaded_model, X, y)
+    visualize_regression(loaded_model, X, y)
+    
+    # Extract and display the symbolic formula using the loaded model
+    formula = extract_symbolic_formula(loaded_model, X, mode='regression')
     print("Approximate symbolic formula:", formula)
-    test_symbolic_formula(model, X, mode='regression')
-
-    # Plot the symbolic formula
-    plot_symbolic_formula(model, X, mode='regression')
-
+    test_symbolic_formula(loaded_model, X, mode='regression')
+    plot_symbolic_formula(loaded_model, X, mode='regression')
+    
     # Get LaTeX representation of the symbolic formula
-    latex_formula = extract_latex_formula(model, X, mode='regression')
+    latex_formula = extract_latex_formula(loaded_model, X, mode='regression')
     print("LaTeX representation of the symbolic formula:", latex_formula)

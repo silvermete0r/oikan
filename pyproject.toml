@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oikan"
-version = "0.0.1.8"
+version = "0.0.1.9"
 description = "OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks"
 authors = [{name = "Arman Zhalgasbayev"}]
 dependencies = [
