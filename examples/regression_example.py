@@ -16,7 +16,7 @@ if __name__ == "__main__":
     
     # Initialize and train model
     model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
-    train(model, (X_train, y_train), epochs=100)
+    train(model, (X_train, y_train), epochs=100, verbose=False)
     
     # Save the trained model
     torch.save(model.state_dict(), "models/oikan_regression_model.pth")
