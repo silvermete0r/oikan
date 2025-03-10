@@ -15,14 +15,14 @@ if __name__ == "__main__":
     y_train = torch.FloatTensor(y)
     
     # Initialize and train model
-    model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
-    train(model, (X_train, y_train), epochs=100, verbose=False)
+    model = OIKAN(input_dim=1, output_dim=1, hidden_units=10, basis_type='combo')
+    train(model, (X_train, y_train), epochs=100, verbose=True)
     
     # Save the trained model
     torch.save(model.state_dict(), "models/oikan_regression_model.pth")
     
     # Demonstrate reusability: load the saved model
-    loaded_model = OIKAN(input_dim=1, output_dim=1, hidden_units=10)
+    loaded_model = OIKAN(input_dim=1, output_dim=1, hidden_units=10, basis_type='combo')
     loaded_model.load_state_dict(torch.load("models/oikan_regression_model.pth"))
     
     # Use the loaded model for evaluation and visualization
