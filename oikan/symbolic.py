@@ -17,9 +17,8 @@ ADVANCED_LIB = {
     'abs':  lambda x: np.abs(x)
 }
 
-# Helper functions
 def get_model_predictions(model, X, mode):
-    """Obtain model predictions; returns flattened predictions for regression, raw outputs for classification."""
+    """Obtain model predictions for regression or classification."""
     X_tensor = torch.FloatTensor(X)
     with torch.no_grad():
         preds = model(X_tensor)
@@ -27,17 +26,16 @@ def get_model_predictions(model, X, mode):
         return preds.detach().cpu().numpy().flatten(), None
     elif mode == 'classification':
         out = preds.detach().cpu().numpy()
-        # In classification, compute a target difference or fallback to flattening
         target = (out[:, 0] - out[:, 1]).flatten() if (out.ndim > 1 and out.shape[1] > 1) else out.flatten()
         return target, out
     else:
         raise ValueError("Unknown mode")
 
 def build_design_matrix(X, return_names=False):
-    """Construct the design matrix from advanced nonlinear bases with optional feature names."""
+    """Construct design matrix from advanced nonlinear bases."""
     X_np = np.array(X)
     n_samples, d = X_np.shape
-    F_parts = [np.ones((n_samples, 1))]  # Bias term
+    F_parts = [np.ones((n_samples, 1))]
     names = ['1'] if return_names else None
     for j in range(d):
         xj = X_np[:, j:j+1]
@@ -47,20 +45,16 @@ def build_design_matrix(X, return_names=False):
                 names.append(f"{key}(x{j+1})")
     return (np.hstack(F_parts), names) if return_names else np.hstack(F_parts)
 
-# Main functions using helpers
 def extract_symbolic_formula(model, X, mode='regression'):
-    """
-    Approximate a symbolic formula that represents model behavior using nonlinear bases.
-    """
+    """Approximate a symbolic formula representing the model."""
     y_target, _ = get_model_predictions(model, X, mode)
     F, func_names = build_design_matrix(X, return_names=True)
     beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
-    # Only include terms with significant coefficients
     terms = [f"({c:.2f}*{name})" for c, name in zip(beta, func_names) if abs(c) > 1e-4]
     return " + ".join(terms)
 
 def test_symbolic_formula(model, X, mode='regression'):
-    """Evaluate the symbolic approximation against the model by computing error metrics."""
+    """Evaluate the symbolic approximation against the model."""
     y_target, out = get_model_predictions(model, X, mode)
     F = build_design_matrix(X, return_names=False)
     beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
@@ -86,14 +80,12 @@ def plot_symbolic_formula(model, X, mode='regression'):
     G = nx.DiGraph()
     G.add_node("Output")
     terms = formula.split(" + ")
-    # Add nodes for each term with coefficient information
     for term in terms:
         expr = term.strip("()")
         coeff_str, basis = expr.split("*", 1) if "*" in expr else (expr, "unknown")
         node_label = f"{basis}\n({float(coeff_str):.2f})"
         G.add_node(node_label)
         G.add_edge(node_label, "Output", weight=float(coeff_str))
-    # Position nodes for visualization
     left_nodes = [n for n in G.nodes() if n != "Output"]
     pos = {}
     n_left = len(left_nodes)
@@ -110,7 +102,7 @@ def plot_symbolic_formula(model, X, mode='regression'):
     plt.show()
 
 def extract_latex_formula(model, X, mode='regression'):
-    """Return the extracted symbolic formula formatted as LaTeX code."""
+    """Return the symbolic formula formatted as LaTeX code."""
     formula = extract_symbolic_formula(model, X, mode)
     terms = formula.split(" + ")
     latex_terms = []
@@ -118,7 +110,6 @@ def extract_latex_formula(model, X, mode='regression'):
         expr = term.strip("()")
         coeff_str, basis = expr.split("*", 1) if "*" in expr else (expr, "")
         coeff = float(coeff_str)
-        # Balance parentheses if required
         missing = basis.count("(") - basis.count(")")
         if missing > 0:
             basis = basis + ")" * missing
