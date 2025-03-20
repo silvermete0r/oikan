@@ -2,13 +2,10 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-def visualize_regression(model, X, y):
+def visualize_regression(X, y_test, y_pred):
     '''Visualize regression results using true vs predicted scatter plots.'''
-    model.eval()
-    with torch.no_grad():
-        y_pred = model(torch.FloatTensor(X)).numpy()
     plt.figure(figsize=(10, 6))
-    plt.scatter(X[:, 0], y, color='blue', label='True')
+    plt.scatter(X[:, 0], y_test, color='blue', label='True')
     plt.scatter(X[:, 0], y_pred, color='red', label='Predicted')
     plt.legend()
     plt.show()

@@ -9,7 +9,7 @@ from oikan.visualize import visualize_time_series_forecasting
 def main():
     # Generate synthetic time series data
     t = np.linspace(0, 20 * np.pi, 2000)
-    series = np.sin(t) + np.cos(t) + 0.1 * np.random.randn(len(t))
+    series = np.sin(t) + 0.1 * np.random.randn(len(t))
     
     # Create sliding window dataset
     window_size = 20

@@ -19,7 +19,7 @@ if __name__ == "__main__":
     y_train = torch.LongTensor(y)
     
     # Initialize and train model
-    model = OIKAN(input_dim=2, output_dim=2, hidden_units=10)
+    model = OIKAN(input_dim=2, output_dim=2, hidden_units=10, bspline_degree=3, bspline_num_knots=10, basis_type='bsplines')
     train_classification(model, (X_train, y_train), epochs=100)
     
     # Save the trained model
