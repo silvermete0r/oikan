@@ -45,22 +45,3 @@ def visualize_classification(model, X, y):
         plt.figure(figsize=(10, 8))
         plt.contourf(xx, yy, Z, alpha=0.4)
         plt.scatter(X[:, 0], X[:, 1], c=y, alpha=0.8)
-
-def visualize_time_series_forecasting(model, X, y):
-    '''
-    Visualize time series forecasting results by plotting true vs predicted values.
-    Expected X shape: [samples, seq_len, features] and y: true targets.
-    '''
-    model.eval()
-    with torch.no_grad():
-        y_pred = model(X).detach().cpu().numpy()
-    if isinstance(y, torch.Tensor):
-        y = y.detach().cpu().numpy()
-    plt.figure(figsize=(10, 5))
-    plt.plot(y, label='True', marker='o', linestyle='-')
-    plt.plot(y_pred, label='Predicted', marker='x', linestyle='--')
-    plt.xlabel("Time Step")
-    plt.ylabel("Value")
-    plt.title("Time Series Forecasting Visualization")
-    plt.legend()
-    plt.show()

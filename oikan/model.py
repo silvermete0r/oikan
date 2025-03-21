@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .utils import BSplineBasis, FourierBasis
+from .exceptions import *
 
 class AdaptiveBasisLayer(nn.Module):
     """Applies a linear transformation in the interpretable model."""
@@ -67,18 +68,17 @@ class EfficientKAN(nn.Module):
 class OIKAN(nn.Module):
     """Main model combining nonlinear transforms, projection, and interpretable layers."""
     def __init__(self, input_dim=None, output_dim=None, hidden_units=10, reduced_dim=32, 
-                 basis_type='bsplines', forecast_mode=False,
-                 bspline_num_knots=10, bspline_degree=3, fourier_num_frequencies=5):
+                 basis_type='bsplines', bspline_num_knots=10, bspline_degree=3, 
+                 fourier_num_frequencies=5, device='cpu'):
         super().__init__()
+        self.device = device
         self.hidden_units = hidden_units
         self.basis_type = basis_type
-        self.forecast_mode = forecast_mode
         self.reduced_dim = reduced_dim
         self.bspline_num_knots = bspline_num_knots
         self.bspline_degree = bspline_degree
         self.fourier_num_frequencies = fourier_num_frequencies
         
-        # Store dimensions but delay initialization until data is provided
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.is_initialized = False
@@ -88,47 +88,59 @@ class OIKAN(nn.Module):
         if self.is_initialized:
             return
 
-        # Infer input dimension
-        if self.forecast_mode:
-            self.input_dim = self.input_dim or X.shape[-1]
-            self.lstm = nn.LSTM(input_size=self.input_dim, hidden_size=self.input_dim, batch_first=True)
-        else:
-            self.input_dim = self.input_dim or X.shape[1]
+        if not isinstance(X, torch.Tensor):
+            raise DataTypeError("Input X must be a torch.Tensor")
+
+        self.input_dim = self.input_dim or X.shape[1]
         
-        # Infer output dimension
         if y is not None:
+            if not isinstance(y, torch.Tensor):
+                raise DataTypeError("Input y must be a torch.Tensor")
             if len(y.shape) == 1:
                 self.output_dim = self.output_dim or 1
             else:
                 self.output_dim = self.output_dim or y.shape[1]
         elif self.output_dim is None:
-            raise ValueError("output_dim must be specified if y is not provided")
+            raise InitializationError("output_dim must be specified if y is not provided")
 
-        # Initialize network components
-        self.efficientkan = EfficientKAN(self.input_dim, self.hidden_units, self.basis_type,
-                                       self.bspline_num_knots, self.bspline_degree, 
-                                       self.fourier_num_frequencies)
-        feature_dim = self.efficientkan.get_output_dim()
-        self.svd_projection = nn.Linear(feature_dim, self.reduced_dim, bias=False)
-        self.interpretable_layers = nn.Sequential(
-            AdaptiveBasisLayer(self.reduced_dim, 32),
-            nn.ReLU(),
-            AdaptiveBasisLayer(32, self.output_dim)
-        )
-        self.is_initialized = True
+        try:
+            self.efficientkan = EfficientKAN(self.input_dim, self.hidden_units, self.basis_type,
+                                           self.bspline_num_knots, self.bspline_degree, 
+                                           self.fourier_num_frequencies).to(self.device)
+            feature_dim = self.efficientkan.get_output_dim()
+            self.svd_projection = nn.Linear(feature_dim, self.reduced_dim, bias=False).to(self.device)
+            self.interpretable_layers = nn.Sequential(
+                AdaptiveBasisLayer(self.reduced_dim, 32),
+                nn.ReLU(),
+                AdaptiveBasisLayer(32, self.output_dim)
+            ).to(self.device)
+            self.is_initialized = True
+        except Exception as e:
+            raise InitializationError(f"Failed to initialize model components: {str(e)}")
 
     def forward(self, x):
         if not self.is_initialized:
-            self.initialize_from_data(x)
-        
-        if self.forecast_mode:
-            lstm_out, (hidden, _) = self.lstm(x)
-            x_in = hidden[-1]
-        else:
-            x_in = x
-        transformed_x = self.efficientkan(x_in)
-        transformed_x = self.svd_projection(transformed_x)
-        return self.interpretable_layers(transformed_x)
+            try:
+                self.initialize_from_data(x)
+            except Exception as e:
+                raise InitializationError(f"Failed to initialize model: {str(e)}")
+
+        if not isinstance(x, torch.Tensor):
+            raise DataTypeError("Input must be a torch.Tensor")
+
+        if x.shape[1] != self.input_dim:
+            raise DimensionalityError(f"Expected input dimension {self.input_dim}, got {x.shape[1]}")
+
+        try:
+            transformed_x = self.efficientkan(x)
+            transformed_x = self.svd_projection(transformed_x)
+            output = self.interpretable_layers(transformed_x)
+            
+            if self.output_dim == 1 and len(output.shape) > 2:
+                output = output.squeeze(-1)
+            return output
+        except Exception as e:
+            raise OikanError(f"Forward pass failed: {str(e)}")
 
     def fit(self, X, y, epochs=100, lr=0.01, verbose=True):
         """Train the model (scikit-learn style)."""
@@ -139,6 +151,10 @@ class OIKAN(nn.Module):
             X = torch.FloatTensor(X)
         if not isinstance(y, torch.Tensor):
             y = torch.FloatTensor(y) if len(y.shape) > 1 or y.dtype == float else torch.LongTensor(y)
+        
+        # Move data to device
+        X = X.to(self.device)
+        y = y.to(self.device)
         
         # Determine if this is classification based on y
         is_classification = y.dtype == torch.long
@@ -154,6 +170,7 @@ class OIKAN(nn.Module):
         """Generate predictions (scikit-learn style)."""
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
+        X = X.to(self.device)
         
         self.eval()
         with torch.no_grad():
@@ -171,6 +188,7 @@ class OIKAN(nn.Module):
         """Generate probability predictions (for classification)."""
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
+        X = X.to(self.device)
         
         self.eval()
         with torch.no_grad():

@@ -19,17 +19,18 @@ ADVANCED_LIB = {
 
 def get_model_predictions(model, X, mode):
     """Obtain model predictions for regression or classification."""
-    X_tensor = torch.FloatTensor(X)
+    if not isinstance(X, torch.Tensor):
+        X = torch.FloatTensor(X)
+    
     with torch.no_grad():
-        preds = model(X_tensor)
+        preds = model(X)
     if mode == 'regression':
         return preds.detach().cpu().numpy().flatten(), None
     elif mode == 'classification':
         out = preds.detach().cpu().numpy()
-        target = (out[:, 0] - out[:, 1]).flatten() if (out.ndim > 1 and out.shape[1] > 1) else out.flatten()
+        target = (out[:, 0] - out[:, 1]).flatten() if out.shape[1] > 1 else out.flatten()
         return target, out
-    else:
-        raise ValueError("Unknown mode")
+    raise ValueError("Unknown mode")
 
 def build_design_matrix(X, return_names=False):
     """Construct design matrix from advanced nonlinear bases."""

@@ -10,9 +10,10 @@ authors = [{name = "Arman Zhalgasbayev"}]
 dependencies = [
     "torch",
     "numpy",
-    "sympy",
     "scipy",
-    "matplotlib"
+    "networkx",
+    "matplotlib",
+    "scikit-learn"
 ]
 readme = "README.md"
 requires-python = ">=3.7"

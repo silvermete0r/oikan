@@ -6,6 +6,20 @@ def train(model, train_data, epochs=100, lr=0.01, save_path=None, verbose=True):
     """Train regression model using MSE loss with regularization."""
     X_train, y_train = train_data
     
+    # Convert inputs to tensors and ensure correct shape
+    if not isinstance(X_train, torch.Tensor):
+        X_train = torch.FloatTensor(X_train)
+    if not isinstance(y_train, torch.Tensor):
+        y_train = torch.FloatTensor(y_train)
+    
+    # Move to device
+    X_train = X_train.to(model.device)
+    y_train = y_train.to(model.device)
+    
+    # Ensure y_train has shape (n_samples, output_dim)
+    if len(y_train.shape) == 1:
+        y_train = y_train.view(-1, 1)
+    
     # Initialize model if not already initialized
     if not model.is_initialized:
         model.initialize_from_data(X_train, y_train)
@@ -33,6 +47,15 @@ def train(model, train_data, epochs=100, lr=0.01, save_path=None, verbose=True):
 def train_classification(model, train_data, epochs=100, lr=0.01, save_path=None, verbose=True):
     """Train classification model using CrossEntropy loss with regularization."""
     X_train, y_train = train_data
+    
+    # Convert and move to device
+    if not isinstance(X_train, torch.Tensor):
+        X_train = torch.FloatTensor(X_train)
+    if not isinstance(y_train, torch.Tensor):
+        y_train = torch.LongTensor(y_train)
+    
+    X_train = X_train.to(model.device)
+    y_train = y_train.to(model.device)
     
     # Initialize model if not already initialized
     if not model.is_initialized:
