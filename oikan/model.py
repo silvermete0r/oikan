@@ -69,7 +69,7 @@ class OIKAN(nn.Module):
     """Main model combining nonlinear transforms, projection, and interpretable layers."""
     def __init__(self, input_dim=None, output_dim=None, hidden_units=10, reduced_dim=32, 
                  basis_type='bsplines', bspline_num_knots=10, bspline_degree=3, 
-                 fourier_num_frequencies=5, device='cpu'):
+                 fourier_num_frequencies=5, device='cpu', mode='regression'):
         super().__init__()
         self.device = device
         self.hidden_units = hidden_units
@@ -78,6 +78,7 @@ class OIKAN(nn.Module):
         self.bspline_num_knots = bspline_num_knots
         self.bspline_degree = bspline_degree
         self.fourier_num_frequencies = fourier_num_frequencies
+        self.mode = mode
         
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -96,10 +97,16 @@ class OIKAN(nn.Module):
         if y is not None:
             if not isinstance(y, torch.Tensor):
                 raise DataTypeError("Input y must be a torch.Tensor")
-            if len(y.shape) == 1:
-                self.output_dim = self.output_dim or 1
+            if self.mode == 'classification':
+                # For classification, set output_dim based on number of unique classes
+                n_classes = len(torch.unique(y))
+                self.output_dim = 1 if n_classes == 2 else n_classes
             else:
-                self.output_dim = self.output_dim or y.shape[1]
+                # For regression, handle as before
+                if len(y.shape) == 1:
+                    self.output_dim = self.output_dim or 1
+                else:
+                    self.output_dim = self.output_dim or y.shape[1]
         elif self.output_dim is None:
             raise InitializationError("output_dim must be specified if y is not provided")
 
@@ -136,8 +143,14 @@ class OIKAN(nn.Module):
             transformed_x = self.svd_projection(transformed_x)
             output = self.interpretable_layers(transformed_x)
             
-            if self.output_dim == 1 and len(output.shape) > 2:
-                output = output.squeeze(-1)
+            # Apply appropriate activation for classification mode
+            if self.mode == 'classification':
+                if self.output_dim == 1:
+                    output = output.view(-1, 1)  # Ensure shape is [batch_size, 1]
+                    # Don't apply sigmoid here since we're using BCEWithLogitsLoss
+                else:
+                    output = torch.softmax(output, dim=1)
+            
             return output
         except Exception as e:
             raise OikanError(f"Forward pass failed: {str(e)}")
@@ -150,17 +163,21 @@ class OIKAN(nn.Module):
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
         if not isinstance(y, torch.Tensor):
-            y = torch.FloatTensor(y) if len(y.shape) > 1 or y.dtype == float else torch.LongTensor(y)
+            if self.mode == 'classification':
+                y = torch.LongTensor(y)
+                if self.output_dim > 2:  # Only convert to one-hot for multiclass
+                    y_onehot = torch.zeros(len(y), self.output_dim)
+                    y_onehot.scatter_(1, y.unsqueeze(1), 1)
+                    y = y_onehot
+            else:
+                y = torch.FloatTensor(y)
         
         # Move data to device
         X = X.to(self.device)
         y = y.to(self.device)
         
-        # Determine if this is classification based on y
-        is_classification = y.dtype == torch.long
-        
         # Use appropriate training function
-        if is_classification:
+        if self.mode == 'classification':
             train_classification(self, (X, y), epochs=epochs, lr=lr, verbose=verbose)
         else:
             train(self, (X, y), epochs=epochs, lr=lr, verbose=verbose)
@@ -176,11 +193,11 @@ class OIKAN(nn.Module):
         with torch.no_grad():
             outputs = self(X)
             
-            # For classification, return class predictions
-            if self.output_dim > 1:  # Multi-class classification
-                return torch.argmax(outputs, dim=1).cpu().numpy()
-            elif outputs.shape[1] == 1:  # Regression or binary classification
-                return outputs.cpu().numpy().squeeze()
+            if self.mode == 'classification':
+                if self.output_dim > 1:
+                    return torch.argmax(outputs, dim=1).cpu().numpy()
+                else:
+                    return (outputs > 0.5).float().cpu().numpy().squeeze()
             
         return outputs.cpu().numpy()
 
