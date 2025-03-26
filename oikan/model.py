@@ -143,15 +143,8 @@ class OIKAN(nn.Module):
             transformed_x = self.svd_projection(transformed_x)
             output = self.interpretable_layers(transformed_x)
             
-            # Apply appropriate activation for classification mode
-            if self.mode == 'classification':
-                if self.output_dim == 1:
-                    output = output.view(-1, 1)  # Ensure shape is [batch_size, 1]
-                    # Don't apply sigmoid here since we're using BCEWithLogitsLoss
-                else:
-                    output = torch.softmax(output, dim=1)
-            
             return output
+            
         except Exception as e:
             raise OikanError(f"Forward pass failed: {str(e)}")
 
@@ -163,14 +156,7 @@ class OIKAN(nn.Module):
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
         if not isinstance(y, torch.Tensor):
-            if self.mode == 'classification':
-                y = torch.LongTensor(y)
-                if self.output_dim > 2:  # Only convert to one-hot for multiclass
-                    y_onehot = torch.zeros(len(y), self.output_dim)
-                    y_onehot.scatter_(1, y.unsqueeze(1), 1)
-                    y = y_onehot
-            else:
-                y = torch.FloatTensor(y)
+            y = torch.FloatTensor(y)
         
         # Move data to device
         X = X.to(self.device)
@@ -194,10 +180,12 @@ class OIKAN(nn.Module):
             outputs = self(X)
             
             if self.mode == 'classification':
-                if self.output_dim > 1:
-                    return torch.argmax(outputs, dim=1).cpu().numpy()
+                if self.output_dim == 1:
+                    # Binary classification
+                    return (torch.sigmoid(outputs) > 0.5).int().cpu().numpy().squeeze()
                 else:
-                    return (outputs > 0.5).float().cpu().numpy().squeeze()
+                    # Multi-class classification
+                    return torch.argmax(outputs, dim=1).cpu().numpy()
             
         return outputs.cpu().numpy()
 
@@ -220,35 +208,27 @@ class OIKAN(nn.Module):
     def extract_symbolic_formula(self, X):
         """Extract a symbolic formula representation of the model's predictions."""
         from .symbolic import extract_symbolic_formula
-        self.eval()
-        mode = 'regression' if self.output_dim == 1 else 'classification'
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
-        return extract_symbolic_formula(self, X, mode=mode)
+        return extract_symbolic_formula(self, X, mode=self.mode)
 
     def test_symbolic_formula(self, X):
         """Test the accuracy of the symbolic formula approximation."""
         from .symbolic import test_symbolic_formula
-        self.eval()
-        mode = 'regression' if self.output_dim == 1 else 'classification'
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
-        return test_symbolic_formula(self, X, mode=mode)
+        return test_symbolic_formula(self, X, mode=self.mode)
 
     def plot_symbolic_formula(self, X):
         """Visualize the symbolic formula as a graph."""
         from .symbolic import plot_symbolic_formula
-        self.eval()
-        mode = 'regression' if self.output_dim == 1 else 'classification'
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
-        return plot_symbolic_formula(self, X, mode=mode)
+        return plot_symbolic_formula(self, X, mode=self.mode)
 
     def extract_latex_formula(self, X):
         """Extract the symbolic formula in LaTeX format."""
         from .symbolic import extract_latex_formula
-        self.eval()
-        mode = 'regression' if self.output_dim == 1 else 'classification'
         if not isinstance(X, torch.Tensor):
             X = torch.FloatTensor(X)
-        return extract_latex_formula(self, X, mode=mode)
+        return extract_latex_formula(self, X, mode=self.mode)

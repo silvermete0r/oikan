@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from .regularization import RegularizedLoss
 
-def train(model, train_data, epochs=100, lr=0.01, save_path=None, verbose=True):
+def train(model, train_data, epochs=100, lr=0.01, verbose=True):
     """Train regression model using MSE loss with regularization."""
     X_train, y_train = train_data
     
@@ -39,12 +39,9 @@ def train(model, train_data, epochs=100, lr=0.01, save_path=None, verbose=True):
         if (epoch + 1) % 10 == 0 and verbose:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
     
-    if save_path is not None:
-        torch.save(model.state_dict(), save_path)
-        print(f"Model saved to {save_path}")
     return model
 
-def train_classification(model, train_data, epochs=100, lr=0.01, save_path=None, verbose=True):
+def train_classification(model, train_data, epochs=100, lr=0.01, verbose=True):
     """Train classification model using appropriate loss with regularization."""
     X_train, y_train = train_data
     
@@ -63,10 +60,12 @@ def train_classification(model, train_data, epochs=100, lr=0.01, save_path=None,
     
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
-    # Select appropriate loss function
-    if model.output_dim == 1:  # Binary classification
-        criterion = nn.BCEWithLogitsLoss()  # Includes sigmoid
-    else:  # Multi-class classification
+    # Use BCEWithLogitsLoss for binary classification and CrossEntropyLoss for multi-class
+    if model.output_dim == 1:
+        criterion = nn.BCEWithLogitsLoss()
+        # Convert labels to float for binary classification
+        y_train = y_train.float()
+    else:
         criterion = nn.CrossEntropyLoss()
     
     reg_loss = RegularizedLoss(criterion, model)
@@ -76,21 +75,15 @@ def train_classification(model, train_data, epochs=100, lr=0.01, save_path=None,
         optimizer.zero_grad()
         outputs = model(X_train)
         
-        # Handle binary classification target shape
+        # Handle output shape for binary classification
         if model.output_dim == 1:
-            y_target = y_train.float().view(-1, 1)  # Reshape to match output
-            outputs = outputs.view(-1, 1)  # Ensure output has same shape
-        else:
-            y_target = y_train
+            outputs = outputs.view(-1)
             
-        loss = reg_loss(outputs, y_target, X_train)
+        loss = reg_loss(outputs, y_train, X_train)
         loss.backward()
         optimizer.step()
         
         if (epoch + 1) % 10 == 0 and verbose:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
-    
-    if save_path is not None:
-        torch.save(model.state_dict(), save_path)
-        print(f"Model saved to {save_path}")
+
     return model

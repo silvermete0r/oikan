@@ -1,38 +1,52 @@
 import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 from oikan.model import OIKAN
 from oikan.visualize import visualize_classification
 from oikan.metrics import evaluate_classification
-from sklearn.datasets import make_moons
-    
+
 if __name__ == "__main__":
-    # Generate two moons dataset
-    X, y = make_moons(n_samples=1000, noise=0.3, random_state=42)
+    # Load breast cancer dataset
+    data = load_breast_cancer()
+    X, y = data.data, data.target
+    feature_names = data.feature_names
     
-    # Create OIKAN model with classification mode
-    model = OIKAN(input_dim=2, output_dim=1, mode='classification')
+    print("Dataset Features:", feature_names)
+    print("Number of features:", len(feature_names))
+    print("Number of samples:", X.shape[0])
     
-    # Train the model
-    model.fit(X, y, epochs=100, verbose=True)
+    # Scale the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
     
-    # Make predictions
-    y_pred = model.predict(X)
+    # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y, test_size=0.2, random_state=42
+    )
+    
+    # Create and train OIKAN model
+    model = OIKAN(mode='classification')
+    model.fit(X_train, y_train, epochs=150, lr=0.005, verbose=True)
+    
+    # Make predictions on test set
+    y_pred = model.predict(X_test)
     
     # Evaluate the model
-    evaluate_classification(y, y_pred)
+    print("\nTest Set Evaluation:")
+    evaluate_classification(y_test, y_pred)
     
-    # Visualize decision boundaries
-    visualize_classification(X, y, y_pred)
+    # Visualize decision boundaries (using first two principal components)
+    visualize_classification(X_test, y_test, y_pred)
     
-    # Extract and print symbolic formula
+    # Extract and display symbolic formulas
     print('\nSymbolic Decision Boundary:')
-    print(model.extract_symbolic_formula(X))
+    print(model.extract_symbolic_formula(X_test))
     
     print('\nLatex Formula:')
-    print(model.extract_latex_formula(X))
+    print(model.extract_latex_formula(X_test))
     
-    # Plot symbolic formula representation
-    model.plot_symbolic_formula(X)
-    
-    # Test symbolic formula accuracy
-    print('\nTesting symbolic formula approximation:')
-    model.test_symbolic_formula(X)
+    # Test and visualize symbolic formula
+    print("\nSymbolic Formula Testing:")
+    model.test_symbolic_formula(X_test)
+    model.plot_symbolic_formula(X_test)

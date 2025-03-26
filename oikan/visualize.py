@@ -35,8 +35,10 @@ def visualize_regression(X, y_test, y_pred, confidence=None):
     plt.grid(True, alpha=0.3)
     plt.show()
 
-def visualize_classification(X, y_test, y_pred, confidence=None):
-    """Visualize classification results with decision boundaries."""
+def visualize_classification(X, y_test, y_pred, confidence=None, model=None):
+    """Visualize classification results with decision boundaries.
+       If a model is provided, its predictions on a mesh grid are used to plot the boundary.
+    """
     # Convert inputs to numpy arrays if needed
     X = np.asarray(X)
     y_test = np.asarray(y_test)
@@ -57,29 +59,35 @@ def visualize_classification(X, y_test, y_pred, confidence=None):
         X_vis = X
         x_label = 'Feature 1'
         y_label = 'Feature 2' if X.shape[1] > 1 else 'Feature 1'
-
-    # Create meshgrid for decision boundary
-    if X.shape[1] > 1:  # 2D or higher
+    
+    if X_vis.shape[1] > 1:
         margin = 0.5
         x_min, x_max = X_vis[:, 0].min() - margin, X_vis[:, 0].max() + margin
         y_min, y_max = X_vis[:, 1].min() - margin, X_vis[:, 1].max() + margin
         xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200),
-                            np.linspace(y_min, y_max, 200))
+                             np.linspace(y_min, y_max, 200))
         
-        # Plot decision boundary
-        if isinstance(y_pred, np.ndarray):
-            mesh_shape = xx.shape
-            Z = y_pred.reshape(mesh_shape) if y_pred.size == xx.size else None
-        else:
-            Z = None
-            
-        if Z is not None:
+        if model is not None:
+            # Use the provided model to predict over the grid.
+            # If PCA was applied, we need to map grid points back to original space.
+            if X.shape[1] > 2:
+                # Inverse transform is not available; warn user.
+                print("Warning: PCA was applied. Provide model that accepts PCA-transformed inputs.")
+                grid_points = np.c_[xx.ravel(), yy.ravel()]
+            else:
+                grid_points = np.c_[xx.ravel(), yy.ravel()]
+            Z = model.predict(grid_points).reshape(xx.shape)
             plt.contourf(xx, yy, Z, alpha=0.4, cmap='RdYlBu')
-
+        else:
+            # Fallback: if y_pred is provided in mesh format.
+            if y_pred.size == xx.size:
+                Z = y_pred.reshape(xx.shape)
+                plt.contourf(xx, yy, Z, alpha=0.4, cmap='RdYlBu')
+    
     # Plot data points
-    scatter = plt.scatter(X_vis[:, 0], 
-                         X_vis[:, 1] if X_vis.shape[1] > 1 else np.zeros_like(X_vis[:, 0]),
-                         c=y_test, cmap='RdYlBu', alpha=0.8, edgecolors='black')
+    scatter = plt.scatter(X_vis[:, 0],
+                          X_vis[:, 1] if X_vis.shape[1] > 1 else np.zeros_like(X_vis[:, 0]),
+                          c=y_test, cmap='RdYlBu', alpha=0.8, edgecolors='black')
     
     plt.colorbar(scatter, label='Class')
     plt.xlabel(x_label)

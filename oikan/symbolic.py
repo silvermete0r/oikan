@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+import functools
+import re
 
 ADVANCED_LIB = {
     'x':    lambda x: x,
@@ -21,15 +23,22 @@ def get_model_predictions(model, X, mode):
     """Obtain model predictions for regression or classification."""
     if not isinstance(X, torch.Tensor):
         X = torch.FloatTensor(X)
+    X = X.to(model.device)
     
     with torch.no_grad():
         preds = model(X)
-    if mode == 'regression':
-        return preds.detach().cpu().numpy().flatten(), None
-    elif mode == 'classification':
-        out = preds.detach().cpu().numpy()
-        target = (out[:, 0] - out[:, 1]).flatten() if out.shape[1] > 1 else out.flatten()
-        return target, out
+        if mode == 'regression':
+            return preds.cpu().numpy().flatten(), None
+        elif mode == 'classification':
+            if model.output_dim == 1:
+                # Binary classification: return logits
+                out = preds.cpu().numpy()
+                return out.flatten(), out
+            else:
+                # Multi-class: return pre-softmax logits for all classes
+                out = preds.cpu().numpy()
+                # Use the logits directly for symbolic approximation
+                return out.reshape(-1, model.output_dim), out
     raise ValueError("Unknown mode")
 
 def build_design_matrix(X, return_names=False):
@@ -47,149 +56,192 @@ def build_design_matrix(X, return_names=False):
     return (np.hstack(F_parts), names) if return_names else np.hstack(F_parts)
 
 def extract_symbolic_formula(model, X, mode='regression'):
-    """Approximate a symbolic formula representing the model."""
+    """
+    Extract a two-layered symbolic formula.
+    First layer: compute a linear combination of advanced nonlinear basis functions.
+    Second layer: apply identity and tanh transformations.
+    Final representation: output = alpha0 + alpha1 * (first layer) + alpha2 * tanh(first layer)
+    """
     y_target, _ = get_model_predictions(model, X, mode)
     F, func_names = build_design_matrix(X, return_names=True)
     beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
-    terms = [f"({c:.2f}*{name})" for c, name in zip(beta, func_names) if abs(c) > 1e-4]
-    return " + ".join(terms)
+    layer1_terms = [f"({coef:.2f}*{name})" for coef, name in zip(beta, func_names) if abs(coef) > 1e-4]
+    layer1_formula = " + ".join(layer1_terms) if layer1_terms else "0"
+    f1 = F.dot(beta)
+    # Second layer using identity and tanh functions
+    G = np.hstack([np.ones((f1.shape[0], 1)), 
+                   f1.reshape(-1, 1), 
+                   np.tanh(f1).reshape(-1, 1)])
+    alpha, _, _, _ = np.linalg.lstsq(G, y_target, rcond=None)
+    final_formula = f"({alpha[0]:.2f} + {alpha[1]:.2f} * ({layer1_formula}) + {alpha[2]:.2f} * tanh({layer1_formula}))"
+    return final_formula
+
+@functools.lru_cache(maxsize=32)
+def get_symbolic_function(formula_str):
+    """
+    Generate a Python function from a symbolic formula string.
+    The function expects the pre-computed first layer value as input.
+    """
+    def symbolic_func(f1):
+        return eval(formula_str, {"np": np, "tanh": np.tanh, "f1": f1})
+    return symbolic_func
+
+def symbolic_function(model, X, mode='regression'):
+    """
+    Create a symbolic function based on the two-layer formula.
+    This function reconstructs the two-layer operation.
+    """
+    F, _ = build_design_matrix(X, return_names=True)
+    y_target, _ = get_model_predictions(model, X, mode)
+    beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
+    f1 = F.dot(beta)
+    G = np.hstack([np.ones((f1.shape[0], 1)), 
+                   f1.reshape(-1, 1), 
+                   np.tanh(f1).reshape(-1, 1)])
+    alpha, _, _, _ = np.linalg.lstsq(G, y_target, rcond=None)
+    # Build a lambda function string representing the two-layer transformation.
+    formula_str = f"{alpha[0]:.4f} + {alpha[1]:.4f} * f1 + {alpha[2]:.4f} * np.tanh(f1)"
+    return get_symbolic_function(formula_str)
 
 def test_symbolic_formula(model, X, mode='regression'):
-    """Evaluate the symbolic approximation against the model."""
+    """Evaluate the symbolic approximation against the model using the full two-layer representation."""
     y_target, out = get_model_predictions(model, X, mode)
     F = build_design_matrix(X, return_names=False)
     beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
-    symbolic_vals = F.dot(beta)
+    f1 = F.dot(beta)
+    G = np.hstack([np.ones((f1.shape[0], 1)),
+                   f1.reshape(-1, 1),
+                   np.tanh(f1).reshape(-1, 1)])
+    alpha, _, _, _ = np.linalg.lstsq(G, y_target, rcond=None)
+    symbolic_vals = G.dot(alpha)
+    
     if mode == 'regression':
         mse = np.mean((symbolic_vals - y_target) ** 2)
         mae = np.mean(np.abs(symbolic_vals - y_target))
         rmse = np.sqrt(mse)
-        header_title = "Symbolic Formula & OIKAN Similarity"
-        header = ["MSE", "MAE", "RMSE"]
-        values = [mse, mae, rmse]
-        col_width = 12
-        row_sep = "+" + "+".join(["-" * (col_width + 2) for _ in header]) + "+"
-        print(f"\n{header_title}")
-        print("-" * len(header_title))
-        print(row_sep)
-        print("|" + "|".join(f" {h:^{col_width}} " for h in header) + "|")
-        print(row_sep)
-        print("|" + "|".join(f" {v:>{col_width}.4f} " for v in values) + "|")
-        print(row_sep)
+        print("\nSymbolic Formula vs OIKAN Regression Metrics:")
+        print(f"MSE: {mse:.4f}, MAE: {mae:.4f}, RMSE: {rmse:.4f}")
         return mse, mae, rmse
     elif mode == 'classification':
-        sym_preds = np.where(symbolic_vals >= 0, 0, 1)
-        model_classes = np.argmax(out, axis=1) if (out.ndim > 1) else (out >= 0.5).astype(int)
-        if model_classes.shape[0] != sym_preds.shape[0]:
-            raise ValueError("Shape mismatch between symbolic and model predictions.")
-        accuracy = np.mean(sym_preds == model_classes)
-        print(f"\nSymbolic Formula & OIKAN Similarity (Accuracy): {accuracy:.4f}")
+        if model.output_dim == 1:
+            symbolic_probs = 1 / (1 + np.exp(-symbolic_vals))
+            model_probs = 1 / (1 + np.exp(-y_target))
+            accuracy = np.mean(np.abs(symbolic_probs - model_probs) < 0.5)
+        else:
+            sym_preds = np.argmax(symbolic_vals.reshape(-1, model.output_dim), axis=1)
+            model_preds = np.argmax(out, axis=1)
+            accuracy = np.mean(sym_preds == model_preds)
+        print(f"\nSymbolic Formula vs OIKAN Classification Similarity: {accuracy:.4f}")
         return accuracy
 
 def plot_symbolic_formula(model, X, mode='regression'):
-    """Plot a 3-layer graph: Inputs -> Function nodes -> Output, with edge labels showing coefficients."""
-    import re
+    """
+    Plot a 4-layer graph:
+      Layer 0: Inputs
+      Layer 1: First layer basis nodes (advanced functions)
+      Layer 2: Second layer transformation nodes (identity and tanh)
+      Layer 3: Output
+    Edge labels show assigned coefficients.
+    """
     formula = extract_symbolic_formula(model, X, mode)
     X_np = np.array(X)
     n_samples, n_inputs = X_np.shape
 
     G = nx.DiGraph()
-    # Define 3 layers: 0: Inputs, 1: Function nodes, 2: Output.
-    layers = {0: [], 1: [], 2: []}
-    
-    # Process symbolic formula terms into edges: (input, function_node, coefficient)
-    function_edges = []
-    terms = formula.split(" + ")
-    for term in terms:
-        term_clean = term.strip()
-        if term_clean.startswith("(") and term_clean.endswith(")"):
-            term_clean = term_clean[1:-1]
-        if "*" in term_clean:
-            coef_str, basis = term_clean.split("*", 1)
-            try:
-                coef = float(coef_str)
-            except:
-                continue
-            if basis.strip() == "1":
-                # Constant term: use dummy input "Const" and function node "1"
-                function_edges.append(("Const", "1", coef))
-            else:
-                m = re.match(r'([^\(]+)\(x(\d+)\)', basis.strip())
-                if m:
-                    func_name, input_idx = m.groups()
-                    function_edges.append((f"x{input_idx}", f"{func_name}(x{input_idx})", coef))
-        else:
-            try:
-                coef = float(term_clean)
-                function_edges.append(("Const", "1", coef))
-            except:
-                continue
+    # Define 4 layers: 0: Inputs, 1: First layer basis, 2: Second layer transforms, 3: Output.
+    layers = {0: [], 1: [], 2: [], 3: []}
 
-    # Layer 0: Input nodes (red circles): include x1...xn and dummy "Const" if needed.
+    # Parse the formula; expected pattern: (alpha0 + alpha1 * (term) + alpha2 * tanh(term))
+    pattern = r"\(?([-\d\.]+)\)?\s*\+\s*([-\d\.]+)\s*\*\s*\((.*?)\)\s*\+\s*([-\d\.]+)\s*\*\s*tanh\(\s*(.*?)\s*\)"
+    m = re.match(pattern, formula)
+    if not m:
+        print("Formula pattern not recognized.")
+        return
+    alpha0, alpha1, term1, alpha2, term2 = m.groups()
+    first_layer_terms = term1.split(" + ") if term1 else []
+
+    # Layer 0: Input nodes
     input_nodes = {f"x{i}" for i in range(1, n_inputs+1)}
     for inp in input_nodes:
         G.add_node(inp, layer=0)
         layers[0].append(inp)
-    if any(inp == "Const" for inp, _, _ in function_edges):
-        G.add_node("Const", layer=0)
-        layers[0].append("Const")
     
-    # Layer 1: Function nodes (skyblue): unique function nodes from edges.
-    function_set = {func for _, func, _ in function_edges}
-    for func in function_set:
-        G.add_node(func, layer=1)
-        layers[1].append(func)
+    # Layer 1: First layer basis nodes from the extracted terms.
+    for term in first_layer_terms:
+        if "*" in term:
+            func_node = term.split("*")[1].strip("() ")
+            G.add_node(func_node, layer=1)
+            layers[1].append(func_node)
     
-    # Layer 2: Output node (green circle)
+    # Layer 2: Second layer transformation nodes (identity and tanh)
+    node_id = "Identity"
+    node_tanh = "tanh"
+    G.add_node(node_id, layer=2)
+    layers[2].append(node_id)
+    G.add_node(node_tanh, layer=2)
+    layers[2].append(node_tanh)
+    
+    # Layer 3: Output node
     output_node = "Output"
-    G.add_node(output_node, layer=2)
-    layers[2].append(output_node)
+    G.add_node(output_node, layer=3)
+    layers[3].append(output_node)
     
-    # Add edges: from input to function and from function to output (with coefficient as edge label)
-    for inp, func, coef in function_edges:
-        G.add_edge(inp, func)
-        G.add_edge(func, output_node, weight=coef)
+    # Add edges:
+    for term in first_layer_terms:
+        parts = term.strip("() ").split("*")
+        if len(parts) == 2:
+            coef = float(parts[0])
+            func = parts[1].strip()
+            inp = re.search(r"x\d+", func)
+            inp = inp.group(0) if inp else "x1"
+            G.add_edge(inp, func, weight=coef)
+    for node in layers[1]:
+        G.add_edge(node, node_id, weight=float(alpha1))
+        G.add_edge(node, node_tanh, weight=float(alpha2))
+    G.add_edge(node_id, output_node, weight=1.0)
+    G.add_edge(node_tanh, output_node, weight=1.0)
     
-    # Adjust positions with increased horizontal and vertical spacing.
+    # Position nodes for 4 layers with better horizontal and vertical spacing
     pos = {}
-    
-    layer_x = {0: 0, 1: 5, 2: 10}
+    layer_x = {0: -1, 1: 2, 2: 5, 3: 8}
     for l, nodes in layers.items():
         n = len(nodes)
+        # Ensure a minimum vertical spacing
         for i, node in enumerate(sorted(nodes)):
-            y = 0.9 - (i * (0.8 / (n - 1))) if n > 1 else 0.5
+            y = 1 - (i + 1) / (n + 1)
             pos[node] = (layer_x[l], y)
     
-    # Update node sizes.
+    # Set different node sizes per layer
     sizes = {}
     for node in G.nodes():
-        layer = G.nodes[node].get('layer')
+        layer = G.nodes[node]['layer']
         if layer == 0:
-            sizes[node] = 3000
+            sizes[node] = 2500
         elif layer == 1:
-            sizes[node] = 3500
+            sizes[node] = 3000
         elif layer == 2:
+            sizes[node] = 3500
+        elif layer == 3:
             sizes[node] = 4000
+
     node_sizes = [sizes[node] for node in G.nodes()]
-    
     node_colors = []
     for node in G.nodes():
-        layer = G.nodes[node].get('layer', -1)
+        layer = G.nodes[node]['layer']
         if layer == 0:
             node_colors.append("red")
-        elif layer == 2:
-            node_colors.append("green")
-        else:
+        elif layer == 1:
             node_colors.append("skyblue")
+        elif layer == 2:
+            node_colors.append("orange")
+        elif layer == 3:
+            node_colors.append("green")
     
-    plt.figure(figsize=(14, 10))
     nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=node_sizes,
-            font_size=10, arrows=True, arrowstyle='->', arrowsize=25)
-    
-    # Label only edges from function nodes to output with the coefficient value.
-    edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True) if 'weight' in d}
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red', font_size=10)
-    plt.title("OIKAN Symbolic Formula Graph")
+            font_size=10, arrows=True, arrowstyle='->', arrowsize=30)
+    edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='black', font_size=10)
+    plt.title("OIKAN Symbolic Formula Graph (4-layered)")
     plt.axis("off")
     plt.show()
 
@@ -206,7 +258,7 @@ def extract_latex_formula(model, X, mode='regression'):
         if missing > 0:
             basis = basis + ")" * missing
         coeff_latex = f"{abs(coeff):.2f}".rstrip("0").rstrip(".")
-        term_latex = coeff_latex if basis.strip() == "1" else f"{coeff_latex} \\cdot {basis.strip()}"
+        term_latex = coeff_latex if basis.strip() == "0" else f"{coeff_latex} \\cdot {basis.strip()}"
         latex_terms.append(f"- {term_latex}" if coeff < 0 else f"+ {term_latex}")
     latex_formula = " ".join(latex_terms).lstrip("+ ").strip()
     return f"$$ {latex_formula} $$"

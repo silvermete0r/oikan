@@ -20,11 +20,21 @@ class RegularizedLoss:
         # Compute gradient penalty to enforce smoothness
         inputs.requires_grad_(True)
         outputs = self.model(inputs)
+        
+        # For classification, take mean over all output dimensions
+        if len(outputs.shape) > 1:
+            outputs = outputs.mean(dim=1)
+        
         gradients = torch.autograd.grad(
             outputs=outputs.sum(),
             inputs=inputs,
-            create_graph=True
+            create_graph=True,
+            allow_unused=True
         )[0]
-        grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+        
+        if gradients is not None:
+            grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+        else:
+            grad_penalty = 0
         
         return base_loss + self.l1_lambda * l1_loss + self.gradient_lambda * grad_penalty
