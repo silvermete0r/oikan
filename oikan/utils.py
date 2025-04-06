@@ -33,19 +33,3 @@ class BSplineBasis(nn.Module):
             return torch.FloatTensor(basis_values).to(x.device)
         except Exception as e:
             raise BasisError(f"BSpline basis computation failed: {str(e)}")
-
-class FourierBasis(nn.Module):
-    '''Module to compute Fourier basis representations for input features.'''
-    def __init__(self, num_frequencies=5):
-        super().__init__()
-        self.num_frequencies = num_frequencies
-        
-    def forward(self, x):
-        if not isinstance(x, torch.Tensor):
-            raise DataTypeError("Input must be a torch.Tensor")
-        try:
-            frequencies = torch.arange(1, self.num_frequencies + 1, device=x.device, dtype=torch.float)
-            x_expanded = x * frequencies.view(1, -1) * 2 * np.pi
-            return torch.cat([torch.sin(x_expanded), torch.cos(x_expanded)], dim=1)
-        except Exception as e:
-            raise BasisError(f"Fourier basis computation failed: {str(e)}")

@@ -28,6 +28,8 @@ def train(model, train_data, epochs=100, lr=0.01, verbose=True):
     criterion = nn.MSELoss()
     reg_loss = RegularizedLoss(criterion, model)
     
+    history = {'loss': [], 'epoch': []}
+    
     model.train()
     for epoch in range(epochs):
         optimizer.zero_grad()
@@ -36,10 +38,14 @@ def train(model, train_data, epochs=100, lr=0.01, verbose=True):
         loss.backward()
         optimizer.step()
         
+        # Track history
+        history['loss'].append(loss.item())
+        history['epoch'].append(epoch + 1)
+        
         if (epoch + 1) % 10 == 0 and verbose:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
     
-    return model
+    return model, history
 
 def train_classification(model, train_data, epochs=100, lr=0.01, verbose=True):
     """Train classification model using appropriate loss with regularization."""
@@ -70,6 +76,8 @@ def train_classification(model, train_data, epochs=100, lr=0.01, verbose=True):
     
     reg_loss = RegularizedLoss(criterion, model)
     
+    history = {'loss': [], 'epoch': []}
+    
     model.train()
     for epoch in range(epochs):
         optimizer.zero_grad()
@@ -83,7 +91,11 @@ def train_classification(model, train_data, epochs=100, lr=0.01, verbose=True):
         loss.backward()
         optimizer.step()
         
+        # Track history
+        history['loss'].append(loss.item())
+        history['epoch'].append(epoch + 1)
+        
         if (epoch + 1) % 10 == 0 and verbose:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
 
-    return model
+    return model, history

@@ -21,3 +21,7 @@ class DataTypeError(OikanError):
 class DeviceError(OikanError):
     """Raised when there are device-related issues."""
     pass
+
+class VisualizationError(OikanError):
+    """Raised when formula visualization becomes too complex to be meaningful."""
+    pass

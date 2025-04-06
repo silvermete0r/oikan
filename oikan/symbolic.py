@@ -8,16 +8,30 @@ import re
 ADVANCED_LIB = {
     'x':    lambda x: x,
     'x^2':  lambda x: x**2,
-    'x^3':  lambda x: x**3,
-    'x^4':  lambda x: x**4,
-    'x^5':  lambda x: x**5,
     'exp':  lambda x: np.exp(x),
-    'log':  lambda x: np.log(np.abs(x) + 1e-8),
-    'sqrt': lambda x: np.sqrt(np.abs(x)),
-    'tanh': lambda x: np.tanh(x),
     'sin':  lambda x: np.sin(x),
-    'abs':  lambda x: np.abs(x)
+    'tanh': lambda x: np.tanh(x)
 }
+
+MAX_NODES_FOR_VISUALIZATION = 20
+MAX_EDGES_FOR_VISUALIZATION = 30
+COEFFICIENT_THRESHOLD = 1e-3  # Threshold for considering a term significant
+
+class VisualizationError(Exception):
+    """Raised when a formula is too complex to visualize clearly."""
+    pass
+
+def filter_significant_terms(coefficients, terms, threshold=COEFFICIENT_THRESHOLD):
+    """Filter out terms with small coefficients."""
+    significant_indices = np.where(np.abs(coefficients) > threshold)[0]
+    return coefficients[significant_indices], [terms[i] for i in significant_indices]
+
+def calculate_formula_complexity(formula):
+    """Calculate complexity score of a symbolic formula."""
+    # Count number of operations and functions
+    operations = formula.count('+') + formula.count('*')
+    functions = sum(func in formula for func in ADVANCED_LIB.keys())
+    return operations + functions
 
 def get_model_predictions(model, X, mode):
     """Obtain model predictions for regression or classification."""
@@ -57,24 +71,60 @@ def build_design_matrix(X, return_names=False):
 
 def extract_symbolic_formula(model, X, mode='regression'):
     """
-    Extract a two-layered symbolic formula.
-    First layer: compute a linear combination of advanced nonlinear basis functions.
-    Second layer: apply identity and tanh transformations.
-    Final representation: output = alpha0 + alpha1 * (first layer) + alpha2 * tanh(first layer)
+    Extract a simplified symbolic formula focusing on significant terms.
+    Handles regression, binary classification, and multi-class classification.
     """
-    y_target, _ = get_model_predictions(model, X, mode)
+    y_target, logits = get_model_predictions(model, X, mode)
     F, func_names = build_design_matrix(X, return_names=True)
-    beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
-    layer1_terms = [f"({coef:.2f}*{name})" for coef, name in zip(beta, func_names) if abs(coef) > 1e-4]
-    layer1_formula = " + ".join(layer1_terms) if layer1_terms else "0"
-    f1 = F.dot(beta)
-    # Second layer using identity and tanh functions
-    G = np.hstack([np.ones((f1.shape[0], 1)), 
-                   f1.reshape(-1, 1), 
-                   np.tanh(f1).reshape(-1, 1)])
-    alpha, _, _, _ = np.linalg.lstsq(G, y_target, rcond=None)
-    final_formula = f"({alpha[0]:.2f} + {alpha[1]:.2f} * ({layer1_formula}) + {alpha[2]:.2f} * tanh({layer1_formula}))"
-    return final_formula
+    
+    if mode == 'classification' and model.output_dim > 1:
+        # Multi-class: create formula for each class
+        formulas = []
+        for class_idx in range(model.output_dim):
+            class_logits = logits[:, class_idx]
+            beta, _, _, _ = np.linalg.lstsq(F, class_logits, rcond=None)
+            
+            # Filter significant terms for this class
+            significant_mask = np.abs(beta) > COEFFICIENT_THRESHOLD
+            beta_filtered = beta[significant_mask]
+            names_filtered = [func_names[i] for i, is_sig in enumerate(significant_mask) if is_sig]
+            
+            if len(names_filtered) == 0:
+                formulas.append("0")
+                continue
+                
+            # Build class-specific formula
+            f1_terms = [f"({coef:.3f}*{name})" for coef, name 
+                       in zip(beta_filtered, names_filtered)]
+            class_formula = " + ".join(f1_terms)
+            
+            # Add to list of class formulas
+            formulas.append(f"Class {class_idx}: {class_formula}")
+        
+        return "\n".join(formulas)
+    
+    else:
+        # Binary classification or regression
+        beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
+        
+        # Filter significant terms
+        significant_mask = np.abs(beta) > COEFFICIENT_THRESHOLD
+        beta_filtered = beta[significant_mask]
+        names_filtered = [func_names[i] for i, is_sig in enumerate(significant_mask) if is_sig]
+        
+        if len(names_filtered) == 0:
+            return "0"
+            
+        # Build first layer formula
+        layer1_terms = [f"({coef:.3f}*{name})" for coef, name 
+                       in zip(beta_filtered, names_filtered)]
+        layer1_formula = " + ".join(layer1_terms)
+        
+        # For binary classification, wrap in sigmoid
+        if mode == 'classification':
+            return f"sigmoid({layer1_formula})"
+        
+        return layer1_formula
 
 @functools.lru_cache(maxsize=32)
 def get_symbolic_function(formula_str):
@@ -104,46 +154,81 @@ def symbolic_function(model, X, mode='regression'):
     return get_symbolic_function(formula_str)
 
 def test_symbolic_formula(model, X, mode='regression'):
-    """Evaluate the symbolic approximation against the model using the full two-layer representation."""
+    """Evaluate the symbolic approximation against the model."""
     y_target, out = get_model_predictions(model, X, mode)
     F = build_design_matrix(X, return_names=False)
-    beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
-    f1 = F.dot(beta)
-    G = np.hstack([np.ones((f1.shape[0], 1)),
-                   f1.reshape(-1, 1),
-                   np.tanh(f1).reshape(-1, 1)])
-    alpha, _, _, _ = np.linalg.lstsq(G, y_target, rcond=None)
-    symbolic_vals = G.dot(alpha)
     
-    if mode == 'regression':
+    if mode == 'classification' and model.output_dim > 1:
+        # Handle multi-class case
+        accuracies = []
+        for class_idx in range(model.output_dim):
+            # Get target logits for current class
+            class_logits = out[:, class_idx]
+            
+            # Fit symbolic approximation for this class
+            beta, _, _, _ = np.linalg.lstsq(F, class_logits, rcond=None)
+            
+            # Get symbolic predictions
+            symbolic_logits = F.dot(beta)
+            
+            # Compare predictions
+            symbolic_class = (symbolic_logits > 0).astype(int)
+            actual_class = (class_logits > 0).astype(int)
+            accuracy = np.mean(symbolic_class == actual_class)
+            accuracies.append(accuracy)
+        
+        avg_accuracy = np.mean(accuracies)
+        print(f"\nSymbolic Formula vs OIKAN Multi-class Classification Similarity:")
+        for i, acc in enumerate(accuracies):
+            print(f"Class {i} Accuracy: {acc:.4f}")
+        print(f"Average Accuracy: {avg_accuracy:.4f}")
+        return accuracies
+        
+    elif mode == 'classification':  # Binary classification
+        # Fit symbolic approximation
+        beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
+        symbolic_vals = F.dot(beta)
+        
+        # Compare predictions
+        symbolic_probs = 1 / (1 + np.exp(-symbolic_vals))
+        model_probs = 1 / (1 + np.exp(-y_target))
+        accuracy = np.mean(np.abs(symbolic_probs - model_probs) < 0.5)
+        
+        print(f"\nSymbolic Formula vs OIKAN Binary Classification Accuracy: {accuracy:.4f}")
+        return accuracy
+        
+    else:  # Regression
+        beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
+        symbolic_vals = F.dot(beta)
+        
         mse = np.mean((symbolic_vals - y_target) ** 2)
         mae = np.mean(np.abs(symbolic_vals - y_target))
         rmse = np.sqrt(mse)
-        print("\nSymbolic Formula vs OIKAN Regression Metrics:")
+        
         print(f"MSE: {mse:.4f}, MAE: {mae:.4f}, RMSE: {rmse:.4f}")
+        
         return mse, mae, rmse
-    elif mode == 'classification':
-        if model.output_dim == 1:
-            symbolic_probs = 1 / (1 + np.exp(-symbolic_vals))
-            model_probs = 1 / (1 + np.exp(-y_target))
-            accuracy = np.mean(np.abs(symbolic_probs - model_probs) < 0.5)
-        else:
-            sym_preds = np.argmax(symbolic_vals.reshape(-1, model.output_dim), axis=1)
-            model_preds = np.argmax(out, axis=1)
-            accuracy = np.mean(sym_preds == model_preds)
-        print(f"\nSymbolic Formula vs OIKAN Classification Similarity: {accuracy:.4f}")
-        return accuracy
 
 def plot_symbolic_formula(model, X, mode='regression'):
-    """
-    Plot a 4-layer graph:
-      Layer 0: Inputs
-      Layer 1: First layer basis nodes (advanced functions)
-      Layer 2: Second layer transformation nodes (identity and tanh)
-      Layer 3: Output
-    Edge labels show assigned coefficients.
-    """
+    """Plot graph representation of formula with complexity checks."""
     formula = extract_symbolic_formula(model, X, mode)
+    
+    if mode == 'classification' and model.output_dim > 1:
+        raise VisualizationError(
+            "Visualization not supported for multi-class classification. "
+            "The formula structure becomes too complex for meaningful visualization."
+        )
+    
+    complexity = calculate_formula_complexity(formula)
+    
+    # Check visualization limits
+    if complexity > MAX_NODES_FOR_VISUALIZATION:
+        raise VisualizationError(
+            f"Formula too complex to visualize clearly (complexity score: {complexity}). "
+            f"Maximum recommended complexity is {MAX_NODES_FOR_VISUALIZATION}. "
+            "Try using a simpler model or increasing the coefficient threshold."
+        )
+    
     X_np = np.array(X)
     n_samples, n_inputs = X_np.shape
 
@@ -201,6 +286,14 @@ def plot_symbolic_formula(model, X, mode='regression'):
     G.add_edge(node_id, output_node, weight=1.0)
     G.add_edge(node_tanh, output_node, weight=1.0)
     
+    # Add check for edge count
+    if G.number_of_edges() > MAX_EDGES_FOR_VISUALIZATION:
+        raise VisualizationError(
+            f"Too many connections to visualize clearly ({G.number_of_edges()} edges). "
+            f"Maximum recommended edges is {MAX_EDGES_FOR_VISUALIZATION}. "
+            "Try using a simpler model or increasing the coefficient threshold."
+        )
+    
     # Position nodes for 4 layers with better horizontal and vertical spacing
     pos = {}
     layer_x = {0: -1, 1: 2, 2: 5, 3: 8}
@@ -248,17 +341,49 @@ def plot_symbolic_formula(model, X, mode='regression'):
 def extract_latex_formula(model, X, mode='regression'):
     """Return the symbolic formula formatted as LaTeX code."""
     formula = extract_symbolic_formula(model, X, mode)
-    terms = formula.split(" + ")
-    latex_terms = []
-    for term in terms:
-        expr = term.strip("()")
-        coeff_str, basis = expr.split("*", 1) if "*" in expr else (expr, "")
-        coeff = float(coeff_str)
-        missing = basis.count("(") - basis.count(")")
-        if missing > 0:
-            basis = basis + ")" * missing
-        coeff_latex = f"{abs(coeff):.2f}".rstrip("0").rstrip(".")
-        term_latex = coeff_latex if basis.strip() == "0" else f"{coeff_latex} \\cdot {basis.strip()}"
-        latex_terms.append(f"- {term_latex}" if coeff < 0 else f"+ {term_latex}")
-    latex_formula = " ".join(latex_terms).lstrip("+ ").strip()
-    return f"$$ {latex_formula} $$"
+    
+    if mode == 'classification' and model.output_dim > 1:
+        # Handle multi-class classification
+        latex_formulas = []
+        for line in formula.split('\n'):
+            if not line.strip():
+                continue
+            class_idx, class_formula = line.split(': ', 1)
+            # Convert the formula to LaTeX
+            terms = class_formula.split(" + ")
+            latex_terms = []
+            for term in terms:
+                term = term.strip("()")
+                if '*' in term:
+                    coeff, basis = term.split('*', 1)
+                    coeff = float(coeff)
+                    latex_terms.append(f"{abs(coeff):.3f} \\cdot {basis.strip()}")
+                else:
+                    latex_terms.append(term)
+            
+            latex_formula = " + ".join(latex_terms).replace("tanh", "\\tanh").replace("exp", "\\exp")
+            latex_formulas.append(f"{class_idx}: {latex_formula}")
+        
+        # Use raw string for LaTeX cases environment
+        return r"$$ \begin{cases} " + r" \\ ".join(latex_formulas) + r" \end{cases} $$"
+    
+    else:
+        # Handle regression and binary classification
+        terms = formula.split(" + ")
+        latex_terms = []
+        
+        for term in terms:
+            term = term.strip("()")
+            if '*' in term:
+                coeff, basis = term.split('*', 1)
+                coeff = float(coeff)
+                latex_terms.append(f"{abs(coeff):.3f} \\cdot {basis.strip()}")
+            else:
+                latex_terms.append(term)
+        
+        latex_formula = " + ".join(latex_terms).replace("tanh", "\\tanh").replace("exp", "\\exp")
+        
+        if mode == 'classification' and model.output_dim == 1:
+            latex_formula = r"\sigma(" + latex_formula + r")"
+            
+        return f"$$ {latex_formula} $$"
