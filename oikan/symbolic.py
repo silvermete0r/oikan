@@ -4,99 +4,53 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 ADVANCED_LIB = {
-    # Basic functions
     'x':    lambda x: x,
     'x^2':  lambda x: x**2,
+    'x^3':  lambda x: x**3,
     'exp':  lambda x: np.exp(x),
-    'sin':  lambda x: np.sin(x),
-    'tanh': lambda x: np.tanh(x),
-    # Advanced functions
-    'log':  lambda x: np.log(np.abs(x) + 1e-7),
+    'log':  lambda x: np.log(np.abs(x) + 1e-8),
     'sqrt': lambda x: np.sqrt(np.abs(x)),
-    'relu': lambda x: np.maximum(0, x),
-    'gaussian': lambda x: np.exp(-x**2),
-    'polynomial3': lambda x: x**3
+    'tanh': lambda x: np.tanh(x),
+    'sin':  lambda x: np.sin(x),
+    'abs':  lambda x: np.abs(x)
 }
 
 def get_model_predictions(model, X, mode):
-    """Obtain model predictions with improved error handling."""
+    """Obtain model predictions for regression or classification."""
     if not isinstance(X, torch.Tensor):
         X = torch.FloatTensor(X)
     
-    try:
-        with torch.no_grad():
-            preds = model(X)
-        if mode == 'regression':
-            return preds.detach().cpu().numpy().flatten(), None
-        elif mode == 'classification':
-            out = preds.detach().cpu().numpy()
-            target = (out[:, 0] - out[:, 1]).flatten() if out.shape[1] > 1 else out.flatten()
-            return target, out
-        raise ValueError(f"Unknown mode: {mode}")
-    except Exception as e:
-        raise RuntimeError(f"Failed to get predictions: {str(e)}")
+    with torch.no_grad():
+        preds = model(X)
+    if mode == 'regression':
+        return preds.detach().cpu().numpy().flatten(), None
+    elif mode == 'classification':
+        out = preds.detach().cpu().numpy()
+        target = (out[:, 0] - out[:, 1]).flatten() if out.shape[1] > 1 else out.flatten()
+        return target, out
+    raise ValueError("Unknown mode")
 
-def build_design_matrix(X, return_names=False, coefficient_threshold=1e-5):
-    """Construct design matrix with improved numerical stability."""
+def build_design_matrix(X, return_names=False):
+    """Construct design matrix from advanced nonlinear bases."""
     X_np = np.array(X)
     n_samples, d = X_np.shape
     F_parts = [np.ones((n_samples, 1))]
     names = ['1'] if return_names else None
-    
-    try:
-        for j in range(d):
-            xj = X_np[:, j:j+1]
-            for key, func in ADVANCED_LIB.items():
-                # Apply function with numerical stability checks
-                try:
-                    result = func(xj)
-                    if np.all(np.isfinite(result)):
-                        F_parts.append(result)
-                        if return_names:
-                            names.append(f"{key}(x{j+1})")
-                except Exception:
-                    continue  # Skip failed function applications
-        
-        F = np.hstack(F_parts)
-        # Remove near-zero columns for better stability
-        if not return_names:
-            return F
-        
-        valid_cols = np.where(np.abs(F).mean(axis=0) > coefficient_threshold)[0]
-        F = F[:, valid_cols]
-        names = [names[i] for i in valid_cols]
-        return F, names
-    
-    except Exception as e:
-        raise RuntimeError(f"Failed to build design matrix: {str(e)}")
+    for j in range(d):
+        xj = X_np[:, j:j+1]
+        for key, func in ADVANCED_LIB.items():
+            F_parts.append(func(xj))
+            if return_names:
+                names.append(f"{key}(x{j+1})")
+    return (np.hstack(F_parts), names) if return_names else np.hstack(F_parts)
 
-def extract_symbolic_formula(model, X, mode='regression', coef_threshold=1e-4):
-    """Extract symbolic formula with improved coefficient selection."""
+def extract_symbolic_formula(model, X, mode='regression'):
+    """Approximate a symbolic formula representing the model."""
     y_target, _ = get_model_predictions(model, X, mode)
     F, func_names = build_design_matrix(X, return_names=True)
-    
-    try:
-        # Use robust least squares with regularization
-        beta, residuals, rank, s = np.linalg.lstsq(F, y_target, rcond=None)
-        
-        # Smart coefficient thresholding
-        max_coef = np.max(np.abs(beta))
-        rel_threshold = coef_threshold * max_coef
-        significant_terms = [(c, name) for c, name in zip(beta, func_names) 
-                           if abs(c) > rel_threshold]
-        
-        if not significant_terms:
-            return "0"  # Return zero if no significant terms
-        
-        terms = []
-        for coef, name in significant_terms:
-            coef_str = f"{coef:.3f}".rstrip('0').rstrip('.')
-            terms.append(f"({coef_str}*{name})")
-        
-        return " + ".join(terms)
-    
-    except Exception as e:
-        raise RuntimeError(f"Failed to extract formula: {str(e)}")
+    beta, _, _, _ = np.linalg.lstsq(F, y_target, rcond=None)
+    terms = [f"({c:.2f}*{name})" for c, name in zip(beta, func_names) if abs(c) > 1e-4]
+    return " + ".join(terms)
 
 def test_symbolic_formula(model, X, mode='regression'):
     """Evaluate the symbolic approximation against the model."""
@@ -131,68 +85,111 @@ def test_symbolic_formula(model, X, mode='regression'):
         return accuracy
 
 def plot_symbolic_formula(model, X, mode='regression'):
-    """Plot formula graph with improved layout and readability."""
-    try:
-        formula = extract_symbolic_formula(model, X, mode)
-        G = nx.DiGraph()
-        
-        # Create node layers
-        input_nodes = set()
-        func_nodes = set()
-        coef_edges = []
-        
-        # Parse formula terms
-        for term in formula.split(" + "):
-            term = term.strip("()")
-            if "*" in term:
-                coef, expr = term.split("*", 1)
-                coef = float(coef)
-                
-                if "(" in expr:
-                    func, var = expr.split("(")
-                    var = var.rstrip(")")
-                    input_nodes.add(var)
-                    func_nodes.add(f"{func}({var})")
-                    G.add_edge(var, f"{func}({var})")
-                    coef_edges.append((f"{func}({var})", coef))
-                else:
-                    func_nodes.add(expr)
-                    coef_edges.append((expr, coef))
-        
-        # Add nodes with improved visual attributes
-        for node in input_nodes:
-            G.add_node(node, layer=0, color='lightblue')
-        for node in func_nodes:
-            G.add_node(node, layer=1, color='lightgreen')
-        G.add_node("output", layer=2, color='salmon')
-        
-        # Add edges with coefficients
-        for node, coef in coef_edges:
-            G.add_edge(node, "output", weight=coef)
-        
-        # Improved layout
-        pos = nx.multipartite_layout(G, subset_key="layer", align='vertical')
-        
-        # Enhanced visualization
-        plt.figure(figsize=(12, 8))
-        nx.draw(G, pos, with_labels=True,
-                node_color=[G.nodes[node].get('color', 'white') for node in G.nodes()],
-                node_size=2000, font_size=8, font_weight='bold',
-                edge_color='gray', width=1, arrowsize=20)
-        
-        # Add edge labels with improved formatting
-        edge_labels = {(u, v): f"{d['weight']:.3f}" 
-                      for u, v, d in G.edges(data=True) if 'weight' in d}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, 
-                                   font_size=8, font_color='red')
-        
-        plt.title("OIKAN Symbolic Formula Graph", pad=20)
-        plt.axis('off')
-        plt.tight_layout()
-        plt.show()
-        
-    except Exception as e:
-        raise RuntimeError(f"Failed to plot formula graph: {str(e)}")
+    """Plot a 3-layer graph: Inputs -> Function nodes -> Output, with edge labels showing coefficients."""
+    import re
+    formula = extract_symbolic_formula(model, X, mode)
+    X_np = np.array(X)
+    n_samples, n_inputs = X_np.shape
+
+    G = nx.DiGraph()
+    # Define 3 layers: 0: Inputs, 1: Function nodes, 2: Output.
+    layers = {0: [], 1: [], 2: []}
+    
+    # Process symbolic formula terms into edges: (input, function_node, coefficient)
+    function_edges = []
+    terms = formula.split(" + ")
+    for term in terms:
+        term_clean = term.strip()
+        if term_clean.startswith("(") and term_clean.endswith(")"):
+            term_clean = term_clean[1:-1]
+        if "*" in term_clean:
+            coef_str, basis = term_clean.split("*", 1)
+            try:
+                coef = float(coef_str)
+            except:
+                continue
+            if basis.strip() == "1":
+                # Constant term: use dummy input "Const" and function node "1"
+                function_edges.append(("Const", "1", coef))
+            else:
+                m = re.match(r'([^\(]+)\(x(\d+)\)', basis.strip())
+                if m:
+                    func_name, input_idx = m.groups()
+                    function_edges.append((f"x{input_idx}", f"{func_name}(x{input_idx})", coef))
+        else:
+            try:
+                coef = float(term_clean)
+                function_edges.append(("Const", "1", coef))
+            except:
+                continue
+
+    # Layer 0: Input nodes (red circles): include x1...xn and dummy "Const" if needed.
+    input_nodes = {f"x{i}" for i in range(1, n_inputs+1)}
+    for inp in input_nodes:
+        G.add_node(inp, layer=0)
+        layers[0].append(inp)
+    if any(inp == "Const" for inp, _, _ in function_edges):
+        G.add_node("Const", layer=0)
+        layers[0].append("Const")
+    
+    # Layer 1: Function nodes (skyblue): unique function nodes from edges.
+    function_set = {func for _, func, _ in function_edges}
+    for func in function_set:
+        G.add_node(func, layer=1)
+        layers[1].append(func)
+    
+    # Layer 2: Output node (green circle)
+    output_node = "Output"
+    G.add_node(output_node, layer=2)
+    layers[2].append(output_node)
+    
+    # Add edges: from input to function and from function to output (with coefficient as edge label)
+    for inp, func, coef in function_edges:
+        G.add_edge(inp, func)
+        G.add_edge(func, output_node, weight=coef)
+    
+    # Adjust positions with increased horizontal and vertical spacing.
+    pos = {}
+    
+    layer_x = {0: 0, 1: 5, 2: 10}
+    for l, nodes in layers.items():
+        n = len(nodes)
+        for i, node in enumerate(sorted(nodes)):
+            y = 0.9 - (i * (0.8 / (n - 1))) if n > 1 else 0.5
+            pos[node] = (layer_x[l], y)
+    
+    # Update node sizes.
+    sizes = {}
+    for node in G.nodes():
+        layer = G.nodes[node].get('layer')
+        if layer == 0:
+            sizes[node] = 3000
+        elif layer == 1:
+            sizes[node] = 3500
+        elif layer == 2:
+            sizes[node] = 4000
+    node_sizes = [sizes[node] for node in G.nodes()]
+    
+    node_colors = []
+    for node in G.nodes():
+        layer = G.nodes[node].get('layer', -1)
+        if layer == 0:
+            node_colors.append("red")
+        elif layer == 2:
+            node_colors.append("green")
+        else:
+            node_colors.append("skyblue")
+    
+    plt.figure(figsize=(14, 10))
+    nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=node_sizes,
+            font_size=10, arrows=True, arrowstyle='->', arrowsize=25)
+    
+    # Label only edges from function nodes to output with the coefficient value.
+    edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True) if 'weight' in d}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red', font_size=10)
+    plt.title("OIKAN Symbolic Formula Graph")
+    plt.axis("off")
+    plt.show()
 
 def extract_latex_formula(model, X, mode='regression'):
     """Return the symbolic formula formatted as LaTeX code."""
