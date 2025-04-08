@@ -1,15 +1,15 @@
 import numpy as np
-from sklearn.datasets import load_wine
+from sklearn.datasets import load_iris
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from oikan.model import OIKAN
 import torch
 
-# Load Wine dataset
-wine = load_wine()
-X, y = wine.data, wine.target
-feature_names = wine.feature_names
+# Load Iris dataset (has only 4 features)
+iris = load_iris()
+X, y = iris.data, iris.target
+feature_names = iris.feature_names
 
 print("Dataset Features:", feature_names)
 print("Number of features:", len(feature_names))

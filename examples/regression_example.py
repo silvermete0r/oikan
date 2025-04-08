@@ -1,17 +1,18 @@
 import numpy as np
-from sklearn.datasets import fetch_california_housing
+from sklearn.datasets import load_diabetes
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from oikan.model import OIKAN
 
-# Load and prepare California Housing dataset
-housing = fetch_california_housing()
-X, y = housing.data, housing.target
-feature_names = housing.feature_names
+# Load and prepare Diabetes dataset (has only 10 features)
+diabetes = load_diabetes()
+X, y = diabetes.data, diabetes.target
+feature_names = diabetes.feature_names
 
 print("Dataset Features:", feature_names)
-print("Target Variable: House Price")
+print("Target Variable: Disease Progression")
+print("Number of features:", len(feature_names))
 print("Number of samples:", X.shape[0])
 
 # Scale features
@@ -47,9 +48,9 @@ mse, mae, rmse = evaluate_regression(y_test, y_pred)
 plt.figure(figsize=(10, 6))
 plt.scatter(y_test, y_pred, alpha=0.5)
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-plt.xlabel('Actual House Price')
-plt.ylabel('Predicted House Price')
-plt.title('OIKAN: Actual vs Predicted House Prices')
+plt.xlabel('Actual Disease Progression')
+plt.ylabel('Predicted Disease Progression')
+plt.title('OIKAN: Actual vs Predicted Disease Progression')
 plt.tight_layout()
 plt.show()
 
@@ -66,8 +67,4 @@ print(latex)
 print("\nTesting Symbolic Formula Accuracy:")
 model.test_symbolic_formula(X_test)
 
-# Visualize formula structure (if not too complex)
-try:
-    model.plot_symbolic_formula(X_test)
-except Exception as e:
-    print("\nFormula visualization skipped:", str(e))
+model.plot_symbolic_formula(X_test)
