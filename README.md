@@ -1,5 +1,9 @@
 # OIKAN
 
+## OIKAN v0.0.2 is under development and not yet released!!! 
+
+## Coming Soon!!!
+
 Optimized Interpretable Kolmogorov-Arnold Networks (OIKAN)  
 A deep learning framework for interpretable neural networks using advanced basis functions.
 
