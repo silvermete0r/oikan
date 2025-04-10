@@ -2,35 +2,21 @@ import torch
 import torch.nn as nn
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
-from .utils import BSplineBasis, ADVANCED_LIB
+from .utils import ADVANCED_LIB, EdgeActivation
 from .exceptions import *
 from datetime import datetime as dt
 
 class SymbolicEdge(nn.Module):
     """Edge-based activation function learner"""
-    def __init__(self, input_dim=1, num_basis=10):
+    def __init__(self):
         super().__init__()
-        self.input_dim = input_dim
-        # One weight per advanced function plus bias
-        self.weights = nn.Parameter(torch.randn(len(ADVANCED_LIB)))
-        self.bias = nn.Parameter(torch.zeros(1))
+        self.activation = EdgeActivation()
     
     def forward(self, x):
-        # Apply each advanced function and combine with weights
-        features = []
-        for _, func in ADVANCED_LIB.values():
-            feat = torch.tensor(func(x.detach().cpu().numpy()), 
-                              dtype=torch.float32).to(x.device)
-            features.append(feat)
-        features = torch.stack(features, dim=-1)
-        return torch.matmul(features, self.weights.unsqueeze(0).T) + self.bias
+        return self.activation(x)
     
     def get_symbolic_repr(self, threshold=1e-4):
-        from .symbolic import symbolic_edge_repr, format_symbolic_terms
-        weights_list = self.weights.detach().cpu().numpy().tolist()
-        bias_val = self.bias.item() if self.bias is not None else None
-        terms = symbolic_edge_repr(weights_list, bias=bias_val, threshold=threshold)
-        return format_symbolic_terms(terms)
+        return self.activation.get_symbolic_repr(threshold)
 
 class KANLayer(nn.Module):
     """Kolmogorov-Arnold Network layer with interpretable edges"""
@@ -40,7 +26,7 @@ class KANLayer(nn.Module):
         self.output_dim = output_dim
         
         self.edges = nn.ModuleList([
-            nn.ModuleList([SymbolicEdge(input_dim=1) for _ in range(output_dim)])
+            nn.ModuleList([SymbolicEdge() for _ in range(output_dim)])
             for _ in range(input_dim)
         ])
         
