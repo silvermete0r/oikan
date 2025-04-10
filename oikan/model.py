@@ -41,34 +41,22 @@ class KANLayer(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         
-        # Create edge functions for each input-output connection
         self.edges = nn.ModuleList([
-            nn.ModuleList([
-                SymbolicEdge(input_dim=1) 
-                for _ in range(output_dim)
-            ])
+            nn.ModuleList([SymbolicEdge(input_dim=1) for _ in range(output_dim)])
             for _ in range(input_dim)
         ])
         
-        # Initialize combination weights with small random values
-        self.combination_weights = nn.Parameter(
-            torch.randn(input_dim, output_dim) * 0.1
-        )
+        self.combination_weights = nn.Parameter(torch.randn(input_dim, output_dim) * 0.1)
     
     def forward(self, x):
-        batch_size = x.shape[0]
-        edge_outputs = torch.zeros(batch_size, self.input_dim, 
-                                 self.output_dim).to(x.device)
-        
-        # Process each input dimension separately
-        for i in range(self.input_dim):
-            x_i = x[:, i:i+1]  # Keep dimension for broadcasting
-            for j in range(self.output_dim):
-                edge_outputs[:, i, j] = self.edges[i][j](x_i).squeeze()
-        
-        # Combine edge outputs with weights
+        # Vectorized computation using split and stacking instead of nested loops
+        x_split = x.split(1, dim=1)  # list of (batch, 1) tensors for each input feature
+        edge_outputs = torch.stack([
+            torch.stack([edge(x_i).squeeze() for edge in edge_list], dim=1)
+            for x_i, edge_list in zip(x_split, self.edges)
+        ], dim=1)  # shape: (batch, input_dim, output_dim)
         combined = edge_outputs * self.combination_weights.unsqueeze(0)
-        return torch.sum(combined, dim=1)
+        return combined.sum(dim=1)
     
     def get_symbolic_formula(self):
         """Extract interpretable formulas for each output"""
@@ -86,11 +74,12 @@ class KANLayer(nn.Module):
 
 class BaseOIKAN(BaseEstimator):
     """Base OIKAN model implementing common functionality"""
-    def __init__(self, hidden_dims=[64, 32], num_basis=10, degree=3):
+    def __init__(self, hidden_dims=[64, 32], num_basis=10, degree=3, dropout=0.1):
         self.hidden_dims = hidden_dims
         self.num_basis = num_basis
         self.degree = degree
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dropout = dropout  # Dropout probability for uncertainty quantification
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  # Auto device chooser
         self.model = None
         self._is_fitted = False
     
@@ -99,6 +88,7 @@ class BaseOIKAN(BaseEstimator):
         prev_dim = input_dim
         for hidden_dim in self.hidden_dims:
             layers.append(KANLayer(prev_dim, hidden_dim))
+            layers.append(nn.Dropout(self.dropout))  # Apply dropout for uncertainty quantification
             prev_dim = hidden_dim
         layers.append(KANLayer(prev_dim, output_dim))
         return nn.Sequential(*layers).to(self.device)
@@ -111,24 +101,56 @@ class BaseOIKAN(BaseEstimator):
         return X.to(self.device), (y.to(self.device) if y is not None else None)
 
     def get_symbolic_formula(self):
-        """Extract symbolic formulas for all features and outputs."""
+        """Generate and cache symbolic formulas for production‐ready inference."""
         if not self._is_fitted:
             raise NotFittedError("Model must be fitted before extracting formulas")
-        
-        if hasattr(self, 'classes_'):  # For classifier
+        if hasattr(self, "symbolic_formula"):
+            return self.symbolic_formula
+        if hasattr(self, 'classes_'):  # Classifier
+            n_features = self.model[0].input_dim
             n_classes = len(self.classes_)
+            formulas = [[None for _ in range(n_classes)] for _ in range(n_features)]
+            first_layer = self.model[0]
+            for i in range(n_features):
+                for j in range(n_classes):
+                    weight = first_layer.combination_weights[i, j].item()
+                    if abs(weight) > 1e-4:
+                        edge_formula = first_layer.edges[i][j].get_symbolic_repr()
+                        terms = []
+                        for term in edge_formula.split(" + "):
+                            if term and term != "0":
+                                if "*" in term:
+                                    coef, rest = term.split("*", 1)
+                                    coef = float(coef) * weight
+                                    terms.append(f"{coef:.4f}*{rest}")
+                                else:
+                                    terms.append(f"{float(term)*weight:.4f}")
+                        formulas[i][j] = " + ".join(terms) if terms else "0"
+                    else:
+                        formulas[i][j] = "0"
+            self.symbolic_formula = formulas
+            return formulas
+        else:  # Regressor
             formulas = []
             first_layer = self.model[0]
             for i in range(first_layer.input_dim):
-                class_formulas = []
-                for j in range(first_layer.output_dim):
-                    formula = first_layer.edges[i][j].get_symbolic_repr()
-                    class_formulas.append(formula)
-                formulas.append(class_formulas)
+                formula = first_layer.edges[i][0].get_symbolic_repr()
+                formulas.append(formula)
+            self.symbolic_formula = formulas
             return formulas
-        else:  # For regressor
-            return [self.model[0].edges[i][0].get_symbolic_repr() 
-                   for i in range(self.model[0].input_dim)]
+
+    def save(self, filename="outputs/symbolic_formula.txt"):
+        """Save the cached symbolic formulas to file for efficient production use."""
+        sym = self.get_symbolic_formula()
+        with open(filename, "w") as f:
+            if hasattr(self, 'classes_'):
+                for i, feature in enumerate(sym):
+                    for j, formula in enumerate(feature):
+                        f.write(f"Feature {i} - Class {j}: {formula}\n")
+            else:
+                for i, formula in enumerate(sym):
+                    f.write(f"Feature {i}: {formula}\n")
+        print(f"Symbolic formulas saved to {filename}")
 
     def get_feature_scores(self):
         """Get feature importance scores based on edge weights."""
@@ -138,42 +160,76 @@ class BaseOIKAN(BaseEstimator):
         weights = self.model[0].combination_weights.detach().cpu().numpy()
         return np.mean(np.abs(weights), axis=1)
 
+    def _eval_formula(self, formula, x):
+        """Helper to evaluate a symbolic formula for an input vector x using ADVANCED_LIB basis functions."""
+        import re
+        total = 0
+        pattern = re.compile(r"(-?\d+\.\d+)\*?([\w\(\)\^]+)")
+        matches = pattern.findall(formula)
+        for coef_str, func_name in matches:
+            try:
+                coef = float(coef_str)
+                for key, (notation, func) in ADVANCED_LIB.items():
+                    if notation.strip() == func_name.strip():
+                        total += coef * func(x)
+                        break
+            except Exception:
+                continue
+        return total
+
     def symbolic_predict(self, X):
-        """Predict using only the extracted symbolic formula."""
+        """Predict using only the extracted symbolic formula (regressor)."""
         if not self._is_fitted:
             raise NotFittedError("Model must be fitted before prediction")
-        
-        if not isinstance(X, np.ndarray):
-            X = np.array(X)
-            
+        X = np.array(X) if not isinstance(X, np.ndarray) else X
+        formulas = self.get_symbolic_formula()  # For regressor: list of formula strings.
+        predictions = np.zeros((X.shape[0], 1))
+        for i, formula in enumerate(formulas):
+            x = X[:, i]
+            predictions[:, 0] += self._eval_formula(formula, x)
+        return predictions
+
+    def save_symbolic_formula(self, filename="output/final_symbolic_formula.txt"):
         formulas = self.get_symbolic_formula()
-        predictions = np.zeros((X.shape[0], 1))  # Default shape for regression
-        
-        if hasattr(self, 'classes_'):  # For classifier
-            predictions = np.zeros((X.shape[0], len(self.classes_)))
+        all_formula = ""
+        # For regression, formulas is a list of strings
+        if not hasattr(self, 'classes_'):
+            for i, form in enumerate(formulas):
+                all_formula += f"Feature {i}: {form}\n"
+        else:
+            # For classifier: formulas is a nested list
             for i, feature_formulas in enumerate(formulas):
-                for j, formula in enumerate(feature_formulas):
-                    # Evaluate formula for each feature and class
-                    x = X[:, i]
-                    for name, (_, func) in ADVANCED_LIB.items():
-                        if name in formula:
-                            try:
-                                term_value = eval(formula.replace(name, 'func(x)'))
-                                predictions[:, j] += term_value
-                            except:
-                                continue
-            return self.classes_[np.argmax(predictions, axis=1)]
-        else:  # For regressor
-            for i, formula in enumerate(formulas):
-                x = X[:, i]
-                for name, (_, func) in ADVANCED_LIB.items():
-                    if name in formula:
-                        try:
-                            term_value = eval(formula.replace(name, 'func(x)'))
-                            predictions[:, 0] += term_value
-                        except:
-                            continue
-            return predictions
+                for j, form in enumerate(feature_formulas):
+                    all_formula += f"Feature {i} - Class {j}: {form}\n"
+        with open(filename, "w") as f:
+            f.write(all_formula)
+        print(f"Symbolic formulas saved to {filename}")
+    
+    def compile_symbolic_formula(self, filename="output/final_symbolic_formula.txt"):
+        import re
+        from .utils import ADVANCED_LIB  # needed to retrieve basis functions
+        with open(filename, "r") as f:
+            content = f.read()
+        # Regex to extract coefficient and function notation.
+        # Matches patterns like: "(-?\d+\.\d+)\*?([\w\(\)\^]+)"
+        matches = re.findall(r"(-?\d+\.\d+)\*?([\w\(\)\^]+)", content)
+        compiled_terms = []
+        for coef_str, func_name in matches:
+            try:
+                coef = float(coef_str)
+                # Search for a matching basis function in ADVANCED_LIB (e.g. 'x', 'x^2', etc.)
+                for key, (notation, func) in ADVANCED_LIB.items():
+                    if notation.strip() == func_name.strip():
+                        compiled_terms.append((coef, func))
+                        break
+            except Exception:
+                continue
+        def prediction_function(x):
+            pred = 0
+            for coef, func in compiled_terms:
+                pred += coef * func(x)
+            return pred
+        return prediction_function
 
 class OIKANRegressor(BaseOIKAN, RegressorMixin):
     """OIKAN implementation for regression tasks"""
@@ -291,21 +347,9 @@ class OIKANClassifier(BaseOIKAN, ClassifierMixin):
         for i in range(X.shape[1]):  # For each feature
             x = X_scaled[:, i]  # Use scaled data
             for j in range(n_classes):  # For each class
-                feature_formulas = formulas[i][j].split(" + ")
-                for term in feature_formulas:
-                    if not term or term == "0":
-                        continue
-                        
-                    for name, (notation, func) in ADVANCED_LIB.items():
-                        if notation in term:
-                            try:
-                                # Extract coefficient
-                                coef = float(term.split("*")[0])
-                                # Apply transformation
-                                term_value = coef * func(x)
-                                predictions[:, j] += term_value
-                            except:
-                                continue
+                formula = formulas[i][j]
+                if formula and formula != "0":
+                    predictions[:, j] += self._eval_formula(formula, x)
         
         # Apply softmax with temperature for better separation
         temperature = 1.0
