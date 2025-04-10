@@ -1,6 +1,6 @@
 <!-- logo in the center -->
 <div align="center">
-<img src="docs/media/oikan_logo.png" alt="OIKAN Logo" width="200"/>
+<img src="https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_logo.png" alt="OIKAN Logo" width="200"/>
 
 <h1>OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks</h1>
 </div>
@@ -54,13 +54,11 @@ from sklearn.model_selection import train_test_split
 # Initialize model with optimal architecture
 model = OIKANRegressor(
     hidden_dims=[16, 8],  # Network architecture
-    num_basis=10,         # Number of basis functions
-    degree=3,             # Polynomial degree
     dropout=0.1           # Regularization
 )
 
 # Fit model (sklearn-style)
-model.fit(X_train, y_train, epochs=200, lr=0.01)
+model.fit(X_train, y_train, epochs=100, lr=0.01)
 
 # Get predictions
 y_pred = model.predict(X_test)
@@ -82,7 +80,7 @@ from oikan.model import OIKANClassifier
 
 # Similar sklearn-style interface for classification
 model = OIKANClassifier(hidden_dims=[16, 8])
-model.fit(X_train, y_train)
+model.fit(X_train, y_train, epochs=100, lr=0.01)
 probas = model.predict_proba(X_test)
 
 # Save classification formulas with implementation guidelines
@@ -131,7 +129,7 @@ OIKAN implements a novel neuro-symbolic architecture based on Kolmogorov-Arnold 
 
 ### Architecture Diagram
 
-![Architecture Diagram](docs/media/oikan_model_architecture_v0.0.2.2.png)
+![Architecture Diagram](https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_model_architecture_v0.0.2.2.png)
 
 ### Key Design Principles
 
