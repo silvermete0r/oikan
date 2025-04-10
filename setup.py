@@ -6,8 +6,6 @@ setup(
     install_requires=[
         "torch",
         "numpy",
-        "sympy",
-        "scipy",
-        "matplotlib"
+        "scikit-learn"
     ]
 )

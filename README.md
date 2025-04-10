@@ -73,6 +73,9 @@ y_pred = model.predict(X_test)
 model.save_symbolic_formula("regression_formula.txt")
 ```
 
+*Example of the saved symbolic formula instructions: [outputs/regression_symbolic_formula.txt](outputs/regression_symbolic_formula.txt)*
+
+
 ### Classification Example
 ```python
 from oikan.model import OIKANClassifier
@@ -89,6 +92,8 @@ probas = model.predict_proba(X_test)
 # - Production deployment recommendations
 model.save_symbolic_formula("classification_formula.txt")
 ```
+
+*Example of the saved symbolic formula instructions: [outputs/classification_symbolic_formula.txt](outputs/classification_symbolic_formula.txt)*
 
 ## Architecture Details
 

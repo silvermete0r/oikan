@@ -4,15 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oikan"
-version = "0.0.1.11"
+version = "0.0.2.1"
 description = "OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks"
 authors = [{name = "Arman Zhalgasbayev"}]
 dependencies = [
     "torch",
     "numpy",
-    "scipy",
-    "networkx",
-    "matplotlib",
     "scikit-learn"
 ]
 readme = "README.md"
