@@ -1,8 +1,9 @@
 <!-- logo in the center -->
 <div align="center">
-  <img src="https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_logo.png" alt="OIKAN Logo" width="200"/>
+<img src="https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_logo.png" alt="OIKAN Logo" width="200"/>
 
-# OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks
+<h1>OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks</h1>
+</div>
 
 ## Overview
 OIKAN (Optimized Interpretable Kolmogorov-Arnold Networks) is a neuro-symbolic ML framework that combines modern neural networks with classical Kolmogorov-Arnold representation theory. It provides interpretable machine learning solutions through automatic extraction of symbolic mathematical formulas from trained models.
