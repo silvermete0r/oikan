@@ -145,12 +145,8 @@ class SymbolicEdge(nn.Module):
     
     def get_symbolic_repr(self, threshold=1e-4):
         """Get symbolic representation using advanced basis functions."""
-        terms = []
-        for w, (notation, _) in zip(self.weights, ADVANCED_LIB.items()):
-            if abs(w.item()) > threshold:
-                terms.append(f"{w.item():.4f}*{notation[0]}")
-        
-        if abs(self.bias.item()) > threshold:
-            terms.append(f"{self.bias.item():.4f}")
-            
-        return " + ".join(terms) if terms else "0"
+        from .symbolic import symbolic_edge_repr, format_symbolic_terms
+        weights_list = self.weights.detach().cpu().numpy().tolist()
+        bias_val = self.bias.item() if self.bias is not None else None
+        terms = symbolic_edge_repr(weights_list, bias=bias_val, threshold=threshold)
+        return format_symbolic_terms(terms)
