@@ -23,8 +23,8 @@ X_test_tensor = torch.FloatTensor(X_test)
 y_test_tensor = torch.LongTensor(y_test)
 
 # ==== STEP 4: Initialize and train the OIKAN classifier ====
-model = OIKANClassifier(hidden_dims=[16, 8], num_basis=10, degree=3, dropout=0.1)
-model.fit(X_train_tensor, y_train_tensor, epochs=200, lr=0.01, batch_size=16, verbose=True)  # changed epochs to 200
+model = OIKANClassifier()
+model.fit(X_train_tensor, y_train_tensor, epochs=100, lr=0.01, verbose=True)  
 
 # ==== STEP 5: Get predicted probabilities and classes from the neural network ====
 probas = model.predict_proba(X_test_tensor)
@@ -64,7 +64,7 @@ sample_input = np.array([X_test[0]])  # test with first sample from test set
 print("Compiled symbolic function output for first test sample:", compiled_fn(sample_input))
 
 # ==== STEP 11: Demonstrate model reloading ====
-loaded_model = OIKANClassifier(hidden_dims=[16, 8], num_basis=10, degree=3, dropout=0.1)
+loaded_model = OIKANClassifier()
 output_dim = 3  # Iris dataset has 3 classes
 loaded_model.model = model._build_network(X_train_tensor.shape[1], output_dim)
 loaded_model.load_model(filepath="models/classification_model.pth")

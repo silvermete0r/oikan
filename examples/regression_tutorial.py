@@ -24,8 +24,8 @@ X_test_tensor = torch.FloatTensor(X_test)
 y_test_tensor = torch.FloatTensor(y_test).reshape(-1, 1)
 
 # ==== STEP 4: Initialize and train the OIKAN regressor ====
-model = OIKANRegressor(hidden_dims=[16, 8], num_basis=10, degree=3, dropout=0.1)
-model.fit(X_train_tensor, y_train_tensor, epochs=200, lr=0.01, batch_size=16, verbose=True)  # changed epochs to 200
+model = OIKANRegressor()
+model.fit(X_train_tensor, y_train_tensor, epochs=100, lr=0.01, verbose=True)
 
 # ==== STEP 5: Obtain neural network predictions on test set ====
 preds = model.predict(X_test_tensor)
@@ -59,7 +59,7 @@ sample_input = np.array([X_test[0]])  # test with first sample from test set
 print("Compiled symbolic function output for first test sample:", compiled_fn(sample_input))
 
 # ==== STEP 11: Demonstrate model reloading ====
-loaded_model = OIKANRegressor(hidden_dims=[16, 8], num_basis=10, degree=3, dropout=0.1)
+loaded_model = OIKANRegressor()
 loaded_model.model = model._build_network(X_train_tensor.shape[1], y_train_tensor.shape[1])
 loaded_model.load_model(filepath="models/regression_model.pth")
 loaded_preds = loaded_model.predict(X_test_tensor)
