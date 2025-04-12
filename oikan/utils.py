@@ -3,17 +3,11 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-# Core basis functions with explicit variable notation
 ADVANCED_LIB = {
     'x':    ('x', lambda x: x),
-    'x^2':  ('x^2', lambda x: np.clip(x**2, -100, 100)),
-    'x^3':  ('x^3', lambda x: np.clip(x**3, -100, 100)),
-    'exp':  ('exp(x)', lambda x: np.exp(np.clip(x, -10, 10))),
-    'log':  ('log(x)', lambda x: np.log(np.abs(x) + 1)),
-    'sqrt': ('sqrt(x)', lambda x: np.sqrt(np.abs(x))),
-    'tanh': ('tanh(x)', lambda x: np.tanh(x)),
-    'sin':  ('sin(x)', lambda x: np.sin(np.clip(x, -10*np.pi, 10*np.pi))),
-    'abs':  ('abs(x)', lambda x: np.abs(x))
+    'x^2':  ('x^2', lambda x: x**2),
+    'sin':  ('sin(x)', lambda x: np.sin(x)),
+    'tanh': ('tanh(x)', lambda x: np.tanh(x))
 }
 
 class EdgeActivation(nn.Module):

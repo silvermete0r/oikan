@@ -51,11 +51,8 @@ pip install -e .  # Install in development mode
 from oikan.model import OIKANRegressor
 from sklearn.model_selection import train_test_split
 
-# Initialize model with optimal architecture
-model = OIKANRegressor(
-    hidden_dims=[16, 8],  # Network architecture
-    dropout=0.1           # Regularization
-)
+# Initialize model 
+model = OIKANRegressor()
 
 # Fit model (sklearn-style)
 model.fit(X_train, y_train, epochs=100, lr=0.01)
@@ -67,7 +64,7 @@ y_pred = model.predict(X_test)
 # The output file will contain:
 # - Detailed symbolic formulas for each feature
 # - Instructions for practical implementation
-# - Recommendations for production deployment
+# - Recommendations for testing and validation
 model.save_symbolic_formula("regression_formula.txt")
 ```
 
@@ -138,42 +135,8 @@ OIKAN implements a novel neuro-symbolic architecture based on Kolmogorov-Arnold 
 3. **Production Ready**: Export formulas as lightweight mathematical expressions
 4. **Automatic Simplification**: Remove insignificant terms (|w| < 1e-4)
 
-## Model Components
 
-1. **Symbolic Edge Functions**
-   ```python
-   class EdgeActivation(nn.Module):
-       """Learnable edge activation with basis functions"""
-       def forward(self, x):
-           return sum(self.weights[i] * basis[i](x) for i in range(self.num_basis))
-   ```
-
-2. **KAN Layer Implementation**
-   ```python
-   class KANLayer(nn.Module):
-       """Kolmogorov-Arnold Network layer"""
-       def forward(self, x):
-           edge_outputs = [self.edges[i](x[:,i]) for i in range(self.input_dim)]
-           return self.combine(edge_outputs)
-   ```
-
-3. **Formula Extraction**
-   ```python
-   def get_symbolic_formula(self):
-       """Extract interpretable mathematical expression"""
-       terms = []
-       for i, edge in enumerate(self.edges):
-           if abs(self.weights[i]) > threshold:
-               terms.append(f"{self.weights[i]:.4f} * {edge.formula}")
-       return " + ".join(terms)
-   ```
-
-### Key Design Principles
-
-- **Modular Architecture**: Each component is independent and replaceable
-- **Interpretability First**: All transformations maintain symbolic representations
-- **Automatic Simplification**: Removes insignificant terms and combines similar expressions
-- **Production Ready**: Export formulas for lightweight deployment
+### Key Model Components
 
 ## Contributing
 

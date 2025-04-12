@@ -25,7 +25,7 @@ y_test_tensor = torch.FloatTensor(y_test).reshape(-1, 1)
 
 # ==== STEP 4: Initialize and train the OIKAN regressor ====
 model = OIKANRegressor()
-model.fit(X_train_tensor, y_train_tensor, epochs=100, lr=0.01, verbose=True)
+model.fit(X_train_tensor, y_train_tensor, epochs=300, lr=0.01, verbose=True)
 
 # ==== STEP 5: Obtain neural network predictions on test set ====
 preds = model.predict(X_test_tensor)
