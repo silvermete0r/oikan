@@ -15,20 +15,39 @@ OIKAN (Optimized Interpretable Kolmogorov-Arnold Networks) is a neuro-symbolic M
 [![GitHub issues](https://img.shields.io/github/issues/silvermete0r/OIKAN.svg)](https://github.com/silvermete0r/oikan/issues)
 [![Docs](https://img.shields.io/badge/docs-passing-brightgreen)](https://silvermete0r.github.io/oikan/)
 
+> **Important Disclaimer**: OIKAN is an experimental research project. It is not intended for production use or real-world applications. This framework is designed for research purposes, experimentation, and academic exploration of neuro-symbolic machine learning concepts.
+
 ## Key Features
 - 🧠 **Neuro-Symbolic ML**: Combines neural network learning with symbolic mathematics
 - 📊 **Automatic Formula Extraction**: Generates human-readable mathematical expressions
 - 🎯 **Scikit-learn Compatible**: Familiar `.fit()` and `.predict()` interface
-- 🚀 **Production-Ready**: Export symbolic formulas for lightweight deployment
+- 🔬 **Research-Focused**: Designed for academic exploration and experimentation
 - 📈 **Multi-Task**: Supports both regression and classification problems
 
 ## Scientific Foundation
 
-OIKAN is based on Kolmogorov's superposition theorem, which states that any multivariate continuous function can be represented as a composition of single-variable functions. We leverage this theory by:
+OIKAN implements the Kolmogorov-Arnold Representation Theorem through a novel neural architecture:
 
-1. Using neural networks to learn optimal basis functions through interpretable edge transformations
-2. Combining transformed features using learnable weights
-3. Automatically extracting human-readable symbolic formulas
+1. **Theorem Background**: Any continuous multivariate function f(x1,...,xn) can be represented as:
+   ```
+   f(x1,...,xn) = ∑(j=0 to 2n){ φj( ∑(i=1 to n) ψij(xi) ) }
+   ```
+   where φj and ψij are continuous single-variable functions.
+
+2. **Neural Implementation**:
+   ```python
+   # Pseudo-implementation of KAN architecture
+   class KANLayer:
+       def __init__(self, input_dim, output_dim):
+           self.edges = [SymbolicEdge() for _ in range(input_dim * output_dim)]
+           self.weights = initialize_weights(input_dim, output_dim)
+   
+       def forward(self, x):
+           # Transform each input through basis functions
+           edge_outputs = [edge(x_i) for x_i, edge in zip(x, self.edges)]
+           # Combine using learned weights
+           return combine_weighted_outputs(edge_outputs, self.weights)
+   ```
 
 ## Quick Start
 
@@ -76,7 +95,7 @@ model.save_symbolic_formula("regression_formula.txt")
 from oikan.model import OIKANClassifier
 
 # Similar sklearn-style interface for classification
-model = OIKANClassifier(hidden_dims=[16, 8])
+model = OIKANClassifier()
 model.fit(X_train, y_train, epochs=100, lr=0.01)
 probas = model.predict_proba(X_test)
 
@@ -84,45 +103,41 @@ probas = model.predict_proba(X_test)
 # The output file will contain:
 # - Decision boundary formulas for each class
 # - Softmax application instructions
-# - Production deployment recommendations
+# - Recommendations for testing and validation
 model.save_symbolic_formula("classification_formula.txt")
 ```
 
 *Example of the saved symbolic formula instructions: [outputs/classification_symbolic_formula.txt](outputs/classification_symbolic_formula.txt)*
 
-## Architecture Details
 
-OIKAN implements a novel neuro-symbolic architecture based on Kolmogorov-Arnold representation theory through three specialized components:
+### Key Design Principles
 
-1. **Edge Symbolic Layer**: Learns interpretable single-variable transformations
-   - Adaptive basis function composition using 9 core functions:
-     ```python
-     ADVANCED_LIB = {
-         'x':    ('x', lambda x: x),
-         'x^2':  ('x^2', lambda x: x**2),
-         'x^3':  ('x^3', lambda x: x**3),
-         'exp':  ('exp(x)', lambda x: np.exp(x)),
-         'log':  ('log(x)', lambda x: np.log(abs(x) + 1)),
-         'sqrt': ('sqrt(x)', lambda x: np.sqrt(abs(x))),
-         'tanh': ('tanh(x)', lambda x: np.tanh(x)),
-         'sin':  ('sin(x)', lambda x: np.sin(x)),
-         'abs':  ('abs(x)', lambda x: np.abs(x))
-     }
-     ```
-   - Each input feature is transformed through these basis functions
-   - Learnable weights determine the optimal combination
+1. **Interpretability by Design**
+   ```python
+   # Edge activation contains interpretable basis functions
+   ADVANCED_LIB = {
+       'x': (lambda x: x),          # Linear
+       'x^2': (lambda x: x**2),     # Quadratic
+       'sin(x)': np.sin,            # Periodic
+       'tanh(x)': np.tanh          # Bounded
+   }
+   ```
 
-2. **Neural Composition Layer**: Multi-layer feature aggregation
-   - Direct feature-to-feature connections through KAN layers
-   - Dropout regularization (p=0.1 default) for robust learning
-   - Gradient clipping (max_norm=1.0) for stable training
-   - User-configurable hidden layer dimensions
+2. **Automatic Simplification**
+   ```python
+   def simplify_formula(terms, threshold=1e-4):
+       return [term for term in terms if abs(term.coefficient) > threshold]
+   ```
 
-3. **Symbolic Extraction Layer**: Generates production-ready formulas
-   - Weight-based term pruning (threshold=1e-4)
-   - Automatic coefficient optimization
-   - Human-readable mathematical expressions
-   - Exportable to lightweight production code
+3. **Research-Oriented Architecture**
+   ```python
+   class SymbolicEdge:
+       def forward(self, x):
+           return sum(w * f(x) for w, f in zip(self.weights, self.basis_functions))
+           
+       def get_formula(self):
+           return format_symbolic_terms(self.weights, self.basis_functions)
+   ```
 
 ### Architecture Diagram
 
@@ -132,11 +147,26 @@ OIKAN implements a novel neuro-symbolic architecture based on Kolmogorov-Arnold 
 
 1. **Interpretability First**: All transformations maintain clear mathematical meaning
 2. **Scikit-learn Compatibility**: Familiar `.fit()` and `.predict()` interface
-3. **Production Ready**: Export formulas as lightweight mathematical expressions
+3. **Symbolic Formula Exporting**: Export formulas as lightweight mathematical expressions
 4. **Automatic Simplification**: Remove insignificant terms (|w| < 1e-4)
 
 
 ### Key Model Components
+
+1. **EdgeActivation Layer**:
+   - Implements interpretable basis function transformations
+   - Automatically prunes insignificant terms
+   - Maintains mathematical transparency
+
+2. **Formula Extraction**:
+   - Combines edge transformations with learned weights
+   - Applies symbolic simplification
+   - Generates human-readable expressions
+
+3. **Training Process**:
+   - Gradient-based optimization of edge weights
+   - Automatic feature importance detection
+   - Complexity control through regularization
 
 ## Contributing
 
