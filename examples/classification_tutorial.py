@@ -41,7 +41,7 @@ print(f"Test Accuracy: {acc:.4f}")
 print("Confusion Matrix:")
 print(cm)
 
-# ==== STEP 7: Extract and display the production-ready symbolic formula ====
+# ==== STEP 7: Extract and display the symbolic formula ====
 symbolic_formula = model.get_symbolic_formula()
 print("Extracted Symbolic Formula:")
 print(symbolic_formula)

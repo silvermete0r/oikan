@@ -37,7 +37,7 @@ mse = mean_squared_error(y_test, preds)
 r2 = r2_score(y_test, preds)
 print(f"Test MSE: {mse:.4f}, R²: {r2:.4f}")
 
-# ==== STEP 7: Extract and display the production-ready symbolic formula ====
+# ==== STEP 7: Extract and display the symbolic formula ====
 symbolic_formula = model.get_symbolic_formula()
 print("Extracted Symbolic Formula:")
 print(symbolic_formula)
