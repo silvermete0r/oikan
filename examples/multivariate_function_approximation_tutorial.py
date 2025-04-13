@@ -41,7 +41,15 @@ print("Neural NN Predictions (first five):", preds[:5])
 symbolic_preds = model.symbolic_predict(X_test)
 print("Symbolic Predictions (first five):", symbolic_preds[:5])
 
-# ==== STEP 7: Evaluate regression performance ====
+# ==== STEP 7: Save and analyze the symbolic formula ====
+model.save_symbolic_formula("outputs/multivariate_symbolic_formula.txt")
+print("\nExtracted Symbolic Formula:")
+formulas = model.get_symbolic_formula()
+print("\nFeature-wise formulas:")
+for i, formula in enumerate(formulas):
+    print(f"Feature {i+1} ({['x1', 'x2', 'x3'][i]}): {formula}")
+
+# ==== STEP 8: Evaluate regression performance ====
 from sklearn.metrics import mean_squared_error, r2_score
 mse = mean_squared_error(y_test, preds)
 r2 = r2_score(y_test, preds)
@@ -50,7 +58,7 @@ print(f"{'Metric':<10}{'Value':>10}")
 print(f"{'MSE':<10}{mse:>10.4f}")
 print(f"{'R²':<10}{r2:>10.4f}")
 
-# ==== STEP 8: Plot the results and training loss history ====
+# ==== STEP 9: Plot the results and training loss history ====
 # Plot results
 plt.figure(figsize=(8,5))
 plt.scatter(range(len(y_test)), y_test, label="True", color="blue", alpha=0.6)

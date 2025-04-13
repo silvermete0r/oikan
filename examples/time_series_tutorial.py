@@ -41,7 +41,15 @@ print("Forecast Predictions (first five):", preds[:5])
 symbolic_preds = model.symbolic_predict(X_test)
 print("Symbolic Forecast Predictions (first five):", symbolic_preds[:5])
 
-# ==== STEP 7: Plot actual vs. predicted values for the time series forecast ====
+# ==== STEP 7: Save and analyze the symbolic formula ====
+model.save_symbolic_formula("outputs/time_series_symbolic_formula.txt")
+print("\nExtracted Symbolic Formula:")
+formulas = model.get_symbolic_formula()
+print("\nFeature-wise formulas:")
+for i, formula in enumerate(formulas):
+    print(f"Time lag {i+1}: {formula}")
+
+# ==== STEP 8: Plot actual vs. predicted values for the time series forecast ====
 plt.figure(figsize=(8,5))
 plt.plot(range(len(y_test)), y_test, label="Actual", color="blue")
 plt.plot(range(len(y_test)), preds, label="NN Forecast", color="red", linestyle="--")
@@ -52,7 +60,7 @@ plt.title("Time Series Forecasting with OIKAN")
 plt.legend()
 plt.show()
 
-# ==== STEP 8: Plot the training loss history ====
+# ==== STEP 9: Plot the training loss history ====
 loss_history = model.get_loss_history()
 plt.figure(figsize=(8,5))
 plt.plot(range(1, len(loss_history)+1), loss_history, marker='o')

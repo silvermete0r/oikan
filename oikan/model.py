@@ -196,30 +196,51 @@ class BaseOIKAN(BaseEstimator):
     def _eval_formula(self, formula, x):
         """Helper to evaluate a symbolic formula for an input vector x using ADVANCED_LIB basis functions."""
         import re
-        total = 0
+        from .utils import ensure_tensor  
+        
+        if isinstance(x, (list, tuple)):
+            x = np.array(x)
+        
+        total = torch.zeros_like(ensure_tensor(x))
         pattern = re.compile(r"(-?\d+\.\d+)\*?([\w\(\)\^]+)")
         matches = pattern.findall(formula)
+        
         for coef_str, func_name in matches:
             try:
                 coef = float(coef_str)
                 for key, (notation, func) in ADVANCED_LIB.items():
                     if notation.strip() == func_name.strip():
-                        total += coef * func(x)
+                        result = func(x)
+                        if isinstance(result, torch.Tensor):
+                            total += coef * result
+                        else:
+                            total += coef * ensure_tensor(result)
                         break
-            except Exception:
+            except Exception as e:
+                print(f"Warning: Error evaluating term {coef_str}*{func_name}: {str(e)}")
                 continue
-        return total
+        
+        return total.cpu().numpy() if isinstance(total, torch.Tensor) else total
 
     def symbolic_predict(self, X):
         """Predict using only the extracted symbolic formula (regressor)."""
         if not self._is_fitted:
             raise NotFittedError("Model must be fitted before prediction")
+        
         X = np.array(X) if not isinstance(X, np.ndarray) else X
-        formulas = self.get_symbolic_formula()  # For regressor: list of formula strings.
+        formulas = self.get_symbolic_formula()
         predictions = np.zeros((X.shape[0], 1))
-        for i, formula in enumerate(formulas):
-            x = X[:, i]
-            predictions[:, 0] += self._eval_formula(formula, x)
+        
+        try:
+            for i, formula in enumerate(formulas):
+                x = X[:, i]
+                pred = self._eval_formula(formula, x)
+                if isinstance(pred, torch.Tensor):
+                    pred = pred.cpu().numpy()
+                predictions[:, 0] += pred
+        except Exception as e:
+            raise RuntimeError(f"Error in symbolic prediction: {str(e)}")
+            
         return predictions
 
     def compile_symbolic_formula(self, filename="output/final_symbolic_formula.txt"):
