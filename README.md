@@ -49,6 +49,17 @@ OIKAN implements the Kolmogorov-Arnold Representation Theorem through a novel ne
            return combine_weighted_outputs(edge_outputs, self.weights)
    ```
 
+3. **Basis functions**
+```python
+# Edge activation contains interpretable basis functions
+ADVANCED_LIB = {
+      'x': (lambda x: x),          # Linear
+      'x^2': (lambda x: x**2),     # Quadratic
+      'sin(x)': np.sin,            # Periodic
+      'tanh(x)': np.tanh          # Bounded
+}
+```
+
 ## Quick Start
 
 ### Installation
@@ -108,36 +119,6 @@ model.save_symbolic_formula("classification_formula.txt")
 ```
 
 *Example of the saved symbolic formula instructions: [outputs/classification_symbolic_formula.txt](outputs/classification_symbolic_formula.txt)*
-
-
-### Key Design Principles
-
-1. **Interpretability by Design**
-   ```python
-   # Edge activation contains interpretable basis functions
-   ADVANCED_LIB = {
-       'x': (lambda x: x),          # Linear
-       'x^2': (lambda x: x**2),     # Quadratic
-       'sin(x)': np.sin,            # Periodic
-       'tanh(x)': np.tanh          # Bounded
-   }
-   ```
-
-2. **Automatic Simplification**
-   ```python
-   def simplify_formula(terms, threshold=1e-4):
-       return [term for term in terms if abs(term.coefficient) > threshold]
-   ```
-
-3. **Research-Oriented Architecture**
-   ```python
-   class SymbolicEdge:
-       def forward(self, x):
-           return sum(w * f(x) for w, f in zip(self.weights, self.basis_functions))
-           
-       def get_formula(self):
-           return format_symbolic_terms(self.weights, self.basis_functions)
-   ```
 
 ### Architecture Diagram
 
