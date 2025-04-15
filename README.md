@@ -149,6 +149,13 @@ model.save_symbolic_formula("classification_formula.txt")
    - Automatic feature importance detection
    - Complexity control through regularization
 
+## Related Notebooks
+
+| No. | Description | Link | Tags |
+|-----|-------------|------|------|
+|  1  | Will be soon.. |   |      |
+  
+
 ## Contributing
 
 We welcome contributions! Key areas of interest:
