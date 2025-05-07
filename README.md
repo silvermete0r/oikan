@@ -2,11 +2,12 @@
 <div align="center">
 <img src="https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_logo.png" alt="OIKAN Logo" width="200"/>
 
-<h1>OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks</h1>
+<h1>OIKAN: Neuro-Symbolic ML for Scientific Discovery</h1>
 </div>
 
 ## Overview
-OIKAN (Optimized Interpretable Kolmogorov-Arnold Networks) is a neuro-symbolic ML framework that combines modern neural networks with classical Kolmogorov-Arnold representation theory. It provides interpretable machine learning solutions through automatic extraction of symbolic mathematical formulas from trained models.
+
+OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arnold representation theorem. It combines the power of modern neural networks with techniques for extracting clear, interpretable symbolic formulas from data. OIKAN is designed to make machine learning models both accurate and Interpretable.
 
 [![PyPI version](https://badge.fury.io/py/oikan.svg)](https://badge.fury.io/py/oikan)
 [![PyPI Downloads per month](https://img.shields.io/pypi/dm/oikan.svg)](https://pypistats.org/packages/oikan)
@@ -26,39 +27,48 @@ OIKAN (Optimized Interpretable Kolmogorov-Arnold Networks) is a neuro-symbolic M
 
 ## Scientific Foundation
 
-OIKAN implements the Kolmogorov-Arnold Representation Theorem through a novel neural architecture:
+OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation Theorem through a hybrid neural architecture:
 
-1. **Theorem Background**: Any continuous multivariate function f(x1,...,xn) can be represented as:
-   ```
-   f(x1,...,xn) = ∑(j=0 to 2n){ φj( ∑(i=1 to n) ψij(xi) ) }
-   ```
-   where φj and ψij are continuous single-variable functions.
+1. **Theoretical Foundation**: The Kolmogorov-Arnold theorem states that any continuous n-dimensional function can be decomposed into a combination of single-variable functions:
 
-2. **Neural Implementation**:
-   ```python
-   # Pseudo-implementation of KAN architecture
-   class KANLayer:
-       def __init__(self, input_dim, output_dim):
-           self.edges = [SymbolicEdge() for _ in range(input_dim * output_dim)]
-           self.weights = initialize_weights(input_dim, output_dim)
+   ```
+   f(x₁,...,xₙ) = ∑(j=0 to 2n){ φⱼ( ∑(i=1 to n) ψᵢⱼ(xᵢ) ) }
+   ```
+
+   where φⱼ and ψᵢⱼ are continuous univariate functions.
+
+2. **Neural Implementation**: OIKAN uses a specialized architecture combining:
+   - Feature transformation layers with interpretable basis functions
+   - Symbolic regression for formula extraction
+   - Automatic pruning of insignificant terms
    
-       def forward(self, x):
-           # Transform each input through basis functions
-           edge_outputs = [edge(x_i) for x_i, edge in zip(x, self.edges)]
-           # Combine using learned weights
-           return combine_weighted_outputs(edge_outputs, self.weights)
+   ```python
+   class OIKANRegressor:
+       def __init__(self, hidden_sizes=[64, 64], activation='relu',
+                    polynomial_degree=2, alpha=0.1):
+           # Neural network for learning complex patterns
+           self.neural_net = TabularNet(input_size, hidden_sizes, activation)
+           # Symbolic regression for interpretable formulas
+           self.symbolic_model = None
+
    ```
 
-3. **Basis functions**
-```python
-# Edge activation contains interpretable basis functions
-ADVANCED_LIB = {
-      'x': (lambda x: x),          # Linear
-      'x^2': (lambda x: x**2),     # Quadratic
-      'sin(x)': np.sin,            # Periodic
-      'tanh(x)': np.tanh          # Bounded
-}
-```
+3. **Basis Functions**: Core set of interpretable transformations:
+   ```python
+   SYMBOLIC_FUNCTIONS = {
+       'linear': 'x',           # Direct relationships
+       'quadratic': 'x^2',      # Non-linear patterns
+       'interaction': 'x_i x_j', # Feature interactions
+       'higher_order': 'x^n'    # Polynomial terms
+   }
+   ```
+
+4. **Formula Extraction Process**:
+   - Train neural network on raw data
+   - Generate augmented samples for better coverage
+   - Perform L1-regularized symbolic regression
+   - Prune terms with coefficients below threshold
+   - Export human-readable mathematical expressions
 
 ## Quick Start
 
@@ -79,82 +89,102 @@ pip install -e .  # Install in development mode
 ### Regression Example
 ```python
 from oikan.model import OIKANRegressor
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
-# Initialize model 
-model = OIKANRegressor()
+# Initialize model
+model = OIKANRegressor(
+    hidden_sizes=[32, 32], # Hidden layer sizes
+    activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
+    augmentation_factor=5, # Augmentation factor for data generation
+    polynomial_degree=2, # Degree of polynomial basis functions
+    alpha=0.1, # L1 regularization strength
+    sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    epochs=100, # Number of training epochs
+    lr=0.001, # Learning rate
+    batch_size=32, # Batch size for training
+    verbose=True # Verbose output during training
+)
 
-# Fit model (sklearn-style)
-model.fit(X_train, y_train, epochs=100, lr=0.01)
+# Fit the model
+model.fit(X_train, y_train)
 
-# Get predictions
+# Make predictions
 y_pred = model.predict(X_test)
 
-# Save interpretable formula to file with auto-generated guidelines
-# The output file will contain:
-# - Detailed symbolic formulas for each feature
-# - Instructions for practical implementation
-# - Recommendations for testing and validation
-model.save_symbolic_formula("regression_formula.txt")
+# Evaluate performance
+mse = mean_squared_error(y_test, y_pred)
+print("Mean Squared Error:", mse)
+
+# Get symbolic formula
+formula = model.get_formula()
+print("Symbolic Formula:", formula)
+
+# Get feature importances
+importances = model.feature_importances()
+print("Feature Importances:", importances)
+
+# Save the model (optional)
+model.save("outputs/model.json")
+
+# Load the model (optional)
+loaded_model = OIKANRegressor()
+loaded_model.load("outputs/model.json")
 ```
 
-*Example of the saved symbolic formula instructions: [outputs/regression_symbolic_formula.txt](outputs/regression_symbolic_formula.txt)*
+*Example of the saved symbolic formula (regression model): [outputs/california_housing_model.json](outputs/california_housing_model.json)*
 
 
 ### Classification Example
 ```python
 from oikan.model import OIKANClassifier
+from sklearn.metrics import accuracy_score
 
-# Similar sklearn-style interface for classification
-model = OIKANClassifier()
-model.fit(X_train, y_train, epochs=100, lr=0.01)
-probas = model.predict_proba(X_test)
+# Initialize model
+model = OIKANClassifier(
+    hidden_sizes=[32, 32], # Hidden layer sizes
+    activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
+    augmentation_factor=10, # Augmentation factor for data generation
+    polynomial_degree=2, # Degree of polynomial basis functions
+    alpha=0.1, # L1 regularization strength
+    sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    epochs=100, # # Number of training epochs
+    lr=0.001, # Learning rate
+    batch_size=32, # Batch size for training
+    verbose=True # Verbose output during training
+)
 
-# Save classification formulas with implementation guidelines
-# The output file will contain:
-# - Decision boundary formulas for each class
-# - Softmax application instructions
-# - Recommendations for testing and validation
-model.save_symbolic_formula("classification_formula.txt")
+# Fit the model
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate performance
+accuracy = model.score(X_test, y_test)
+print("Accuracy:", accuracy)
+
+# Get symbolic formulas for each class
+formulas = model.get_formula()
+for i, formula in enumerate(formulas):
+    print(f"Class {i} Formula:", formula)
+   
+# Get feature importances
+importances = model.feature_importances()
+print("Feature Importances:", importances)
+
+# Save the model (optional)
+model.save("outputs/model.json")
+
+# Load the model (optional)
+loaded_model = OIKANClassifier()
+loaded_model.load("outputs/model.json")
 ```
 
-*Example of the saved symbolic formula instructions: [outputs/classification_symbolic_formula.txt](outputs/classification_symbolic_formula.txt)*
+*Example of the saved symbolic formula (classification model): [outputs/iris_model.json](outputs/iris_model.json)*
 
 ### Architecture Diagram
 
-![Architecture Diagram](https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_model_architecture_v0.0.2.2.png)
-
-### Key Design Principles
-
-1. **Interpretability First**: All transformations maintain clear mathematical meaning
-2. **Scikit-learn Compatibility**: Familiar `.fit()` and `.predict()` interface
-3. **Symbolic Formula Exporting**: Export formulas as lightweight mathematical expressions
-4. **Automatic Simplification**: Remove insignificant terms (|w| < 1e-4)
-
-
-### Key Model Components
-
-1. **EdgeActivation Layer**:
-   - Implements interpretable basis function transformations
-   - Automatically prunes insignificant terms
-   - Maintains mathematical transparency
-
-2. **Formula Extraction**:
-   - Combines edge transformations with learned weights
-   - Applies symbolic simplification
-   - Generates human-readable expressions
-
-3. **Training Process**:
-   - Gradient-based optimization of edge weights
-   - Automatic feature importance detection
-   - Complexity control through regularization
-
-## Related Notebooks
-
-| No. | Description | Link | Tags |
-|-----|-------------|------|------|
-|  1  | Will be soon.. |   |      |
-  
+*Will be updated soon..*
 
 ## Contributing
 

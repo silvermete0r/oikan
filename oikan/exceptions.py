@@ -1,15 +1,7 @@
-class OikanError(Exception):
-    """Base exception class for OIKAN"""
+class OIKANError(Exception):
+    """Base exception for OIKAN library."""
     pass
 
-class NotFittedError(OikanError):
-    """Raised when prediction is attempted on unfitted model"""
-    pass
-
-class DataError(OikanError):
-    """Raised when there are issues with input data"""
-    pass
-
-class InitializationError(OikanError):
-    """Raised when model initialization fails"""
+class ModelNotFittedError(OIKANError):
+    """Raised when a method requires a fitted model."""
     pass

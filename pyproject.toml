@@ -4,15 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oikan"
-version = "0.0.2.5"
-description = "OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks"
+version = "0.0.3.1"
+description = "OIKAN: Neuro-Symbolic ML for Scientific Discovery"
+readme = "README.md"
 authors = [{name = "Arman Zhalgasbayev"}]
 dependencies = [
     "torch",
     "numpy",
-    "scikit-learn"
+    "scikit-learn",
+    "tqdm" 
 ]
-readme = "README.md"
 requires-python = ">=3.7"
 license = {text = "MIT"}
 classifiers = [
