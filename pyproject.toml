@@ -10,7 +10,8 @@ authors = [{name = "Arman Zhalgasbayev"}]
 dependencies = [
     "torch",
     "numpy",
-    "scikit-learn"
+    "scikit-learn",
+    "tqdm"  # Add tqdm for progress bars
 ]
 readme = "README.md"
 requires-python = ">=3.7"

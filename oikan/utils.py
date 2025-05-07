@@ -1,53 +1,63 @@
-from .exceptions import *
-import torch
-import torch.nn as nn
 import numpy as np
 
-def ensure_tensor(x):
-    """Helper function to ensure input is a PyTorch tensor."""
-    if isinstance(x, np.ndarray):
-        return torch.from_numpy(x).float()
-    elif isinstance(x, (int, float)):
-        return torch.tensor([x], dtype=torch.float32)
-    elif isinstance(x, torch.Tensor):
-        return x.float()
-    else:
-        raise ValueError(f"Unsupported input type: {type(x)}")
-
-# Updated to handle numpy arrays and scalars
-ADVANCED_LIB = {
-    'x': ('x', lambda x: ensure_tensor(x)),
-    'x^2': ('x^2', lambda x: torch.pow(ensure_tensor(x), 2)),
-    'sin': ('sin(x)', lambda x: torch.sin(ensure_tensor(x))),
-    'tanh': ('tanh(x)', lambda x: torch.tanh(ensure_tensor(x)))
-}
-
-class EdgeActivation(nn.Module):
-    """Learnable edge-based activation function with improved gradient flow."""
-    def __init__(self):
-        super().__init__()
-        self.weights = nn.Parameter(torch.randn(len(ADVANCED_LIB)))
-        self.bias = nn.Parameter(torch.zeros(1))
-        
-    def forward(self, x):
-        x_tensor = ensure_tensor(x)
-        features = []
-        for _, func in ADVANCED_LIB.values():
-            feat = func(x_tensor)
-            features.append(feat)
-        features = torch.stack(features, dim=-1)
-        return torch.matmul(features, self.weights.unsqueeze(0).T) + self.bias
+def evaluate_basis_functions(X, basis_functions, n_features):
+    """
+    Evaluates basis functions on the input data.
     
-    def get_symbolic_repr(self, threshold=1e-4):
-        """Get symbolic representation of the activation function."""
-        weights_np = self.weights.detach().cpu().numpy()
-        significant_terms = []
-        
-        for (notation, _), weight in zip(ADVANCED_LIB.values(), weights_np):
-            if abs(weight) > threshold:
-                significant_terms.append(f"{weight:.4f}*{notation}")
-                
-        if abs(self.bias.item()) > threshold:
-            significant_terms.append(f"{self.bias.item():.4f}")
-                
-        return " + ".join(significant_terms) if significant_terms else "0"
+    Parameters:
+    -----------
+    X : array-like of shape (n_samples, n_features)
+        Input data.
+    basis_functions : list
+        List of basis function strings (e.g., '1', 'x0', 'x0^2', 'x0 x1').
+    n_features : int
+        Number of input features.
+    
+    Returns:
+    --------
+    X_transformed : ndarray of shape (n_samples, n_basis_functions)
+        Transformed data matrix.
+    """
+    X_transformed = np.zeros((X.shape[0], len(basis_functions)))
+    for i, func in enumerate(basis_functions):
+        if func == '1':
+            X_transformed[:, i] = 1
+        elif '^' in func:
+            var, power = func.split('^')
+            idx = int(var[1:])
+            X_transformed[:, i] = X[:, idx] ** int(power)
+        elif ' ' in func:
+            var1, var2 = func.split(' ')
+            idx1 = int(var1[1:])
+            idx2 = int(var2[1:])
+            X_transformed[:, i] = X[:, idx1] * X[:, idx2]
+        else:
+            idx = int(func[1:])
+            X_transformed[:, i] = X[:, idx]
+    return X_transformed
+
+def get_features_involved(basis_function):
+    """
+    Extracts the feature indices involved in a basis function string.
+    
+    Parameters:
+    -----------
+    basis_function : str
+        String representation of the basis function, e.g., 'x0', 'x0^2', 'x0 x1'.
+    
+    Returns:
+    --------
+    set : Set of feature indices involved.
+    """
+    if basis_function == '1':  # Constant term involves no features
+        return set()
+    features = set()
+    for part in basis_function.split():  # Split by space for interaction terms
+        if part.startswith('x'):
+            if '^' in part:  # Handle powers, e.g., 'x0^2'
+                var = part.split('^')[0]  # Take 'x0'
+            else:
+                var = part  # Take 'x0' as is
+            idx = int(var[1:])  # Extract index, e.g., 0
+            features.add(idx)
+    return features

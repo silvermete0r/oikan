@@ -6,6 +6,7 @@ setup(
     install_requires=[
         "torch",
         "numpy",
-        "scikit-learn"
+        "scikit-learn",
+        "tqdm"  # Add tqdm for progress bars
     ]
 )
