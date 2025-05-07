@@ -7,7 +7,7 @@
 
 ## Overview
 
-OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arnold representation theory. It combines the power of modern neural networks with techniques for extracting clear, interpretable symbolic formulas from data. OIKAN is designed to make machine learning models both accurate and understandable.
+OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arnold representation theorem. It combines the power of modern neural networks with techniques for extracting clear, interpretable symbolic formulas from data. OIKAN is designed to make machine learning models both accurate and Interpretable.
 
 [![PyPI version](https://badge.fury.io/py/oikan.svg)](https://badge.fury.io/py/oikan)
 [![PyPI Downloads per month](https://img.shields.io/pypi/dm/oikan.svg)](https://pypistats.org/packages/oikan)
@@ -184,7 +184,7 @@ loaded_model.load("outputs/model.json")
 
 ### Architecture Diagram
 
-![Architecture Diagram](https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_model_architecture_v0.0.2.2.png)
+*Will be updated soon..*
 
 ## Contributing
 

@@ -54,14 +54,14 @@
                     Optimized Interpretable Kolmogorov-Arnold Networks
                 </h1>
                 <p class="mt-3 max-w-md mx-auto text-base text-gray-100 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-                    A neuro-symbolic ML framework that combines modern neural networks with classical Kolmogorov-Arnold representation theory.
+                    A neuro-symbolic ML framework inspired by Kolmogorov-Arnold representation theorem to make models both accurate and Interpretable.
                 </p>
                 
                 <!-- Status Widget -->
                 <div class="mt-4 max-w-md mx-auto">
                     <div class="bg-yellow-50 bg-opacity-90 rounded-lg shadow-sm p-2 flex items-center space-x-2">
                         <span class="text-yellow-800">⚠️</span>
-                        <p class="text-sm text-yellow-800">This is an experimental research project (v0.0.2). For educational and research purposes only.</p>
+                        <p class="text-sm text-yellow-800">This is an experimental research project (v0.0.3). For educational and research purposes only.</p>
                     </div>
                 </div>
 
@@ -78,7 +78,7 @@
         <section id="overview" class="mb-16">
             <h2 class="text-3xl font-bold text-gray-900 mb-6">Architecture Overview</h2>
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <img src="./media/oikan_model_architecture_v0.0.2.2.png" alt="OIKAN Architecture" class="w-full rounded-lg">
+                <img src="./media/" alt="OIKAN v0.0.3: Architecture -> will be updated soon!" class="w-full rounded-lg">
             </div>
         </section>
 
@@ -130,36 +130,92 @@ pip install -e .</code></pre>
             <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h3 class="text-xl font-semibold mb-4">Regression Example</h3>
                 <pre class="language-python"><code>from oikan.model import OIKANRegressor
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
-# Initialize regression model
-model = OIKANRegressor()
+# Initialize model
+model = OIKANRegressor(
+    hidden_sizes=[32, 32], # Hidden layer sizes
+    activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
+    augmentation_factor=5, # Augmentation factor for data generation
+    polynomial_degree=2, # Degree of polynomial basis functions
+    alpha=0.1, # L1 regularization strength
+    sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    epochs=100, # Number of training epochs
+    lr=0.001, # Learning rate
+    batch_size=32, # Batch size for training
+    verbose=True # Verbose output during training
+)
 
-# Fit model (sklearn-style)
-model.fit(X_train, y_train, epochs=200, lr=0.01)
+# Fit the model
+model.fit(X_train, y_train)
 
-# Get predictions
+# Make predictions
 y_pred = model.predict(X_test)
 
-# Save interpretable formula
-model.save_symbolic_formula("regression_formula.txt")</code></pre>
+# Evaluate performance
+mse = mean_squared_error(y_test, y_pred)
+print("Mean Squared Error:", mse)
+
+# Get symbolic formula
+formula = model.get_formula()
+print("Symbolic Formula:", formula)
+
+# Get feature importances
+importances = model.feature_importances()
+print("Feature Importances:", importances)
+
+# Save the model (optional)
+model.save("outputs/model.json")
+
+# Load the model (optional)
+loaded_model = OIKANRegressor()
+loaded_model.load("outputs/model.json")</code></pre>
             </div>
 
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h3 class="text-xl font-semibold mb-4">Classification Example</h3>
                 <pre class="language-python"><code>from oikan.model import OIKANClassifier
+from sklearn.metrics import accuracy_score
 
-# Initialize classification model
-model = OIKANClassifier()
+# Initialize model
+model = OIKANClassifier(
+    hidden_sizes=[32, 32], # Hidden layer sizes
+    activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
+    augmentation_factor=10, # Augmentation factor for data generation
+    polynomial_degree=2, # Degree of polynomial basis functions
+    alpha=0.1, # L1 regularization strength
+    sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    epochs=100, # # Number of training epochs
+    lr=0.001, # Learning rate
+    batch_size=32, # Batch size for training
+    verbose=True # Verbose output during training
+)
 
-# Fit model (sklearn-style)
-model.fit(X_train, y_train, epochs=200, lr=0.01)
+# Fit the model
+model.fit(X_train, y_train)
 
-# Get predictions
-probas = model.predict_proba(X_test)
+# Make predictions
+y_pred = model.predict(X_test)
 
-# Save classification formulas
-model.save_symbolic_formula("classification_formula.txt")</code></pre>
+# Evaluate performance
+accuracy = model.score(X_test, y_test)
+print("Accuracy:", accuracy)
+
+# Get symbolic formulas for each class
+formulas = model.get_formula()
+for i, formula in enumerate(formulas):
+    print(f"Class {i} Formula:", formula)
+    
+# Get feature importances
+importances = model.feature_importances()
+print("Feature Importances:", importances)
+
+# Save the model (optional)
+model.save("outputs/model.json")
+
+# Load the model (optional)
+loaded_model = OIKANClassifier()
+loaded_model.load("outputs/model.json")</code></pre>
             </div>
         </section>
 
@@ -181,7 +237,7 @@ model.save_symbolic_formula("classification_formula.txt")</code></pre>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <h3 class="text-lg font-semibold mb-4">About OIKAN</h3>
-                    <p class="text-gray-400">Optimized Interpretable Kolmogorov-Arnold Networks (OIKAN) is an advanced deep learning framework focused on interpretability and efficiency.</p>
+                    <p class="text-gray-400">OIKAN is a neuro-symbolic ML framework inspired by Kolmogorov-Arnold representation theorem. OIKAN is designed to make machine learning models both accurate and Interpretable.</p>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
