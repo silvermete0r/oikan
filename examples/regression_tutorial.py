@@ -2,7 +2,7 @@
 
 from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from oikan import OIKANRegressor
 
 # Load dataset
@@ -14,9 +14,9 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 # Initialize OIKANRegressor with verbose=True
 model = OIKANRegressor(
-    hidden_sizes=[64, 64], 
+    hidden_sizes=[32, 32], 
     activation='relu', 
-    augmentation_factor=10, 
+    augmentation_factor=5, 
     polynomial_degree=2, 
     alpha=0.1, 
     sigma=0.1, 
@@ -34,7 +34,9 @@ y_pred = model.predict(X_test)
 
 # Evaluate performance
 mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 print(f"Mean Squared Error: {mse:.4f}")
+print(f"R^2 Score: {r2:.4f}")
 
 # Get symbolic formula
 formula = model.get_formula()
@@ -45,4 +47,11 @@ importances = model.feature_importances()
 print("Feature Importances:", importances)
 
 # Save the model (optional)
-model.save("california_housing_model.txt")
+model.save("outputs/california_housing_model.json")
+
+# Load the model (optional)
+print("Loaded Model:")
+loaded_model = OIKANRegressor()
+loaded_model.load("outputs/california_housing_model.json")
+formula_loaded = loaded_model.get_formula()
+print("Symbolic Formula (loaded):", formula_loaded)

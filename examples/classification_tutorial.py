@@ -1,6 +1,6 @@
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from oikan import OIKANClassifier
 
 # Load dataset
@@ -13,8 +13,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # Initialize OIKANClassifier with verbose=True
 model = OIKANClassifier(
     hidden_sizes=[32, 32], 
-    activation='relu', 
-    augmentation_factor=10, 
+    activation='relu',
+    augmentation_factor=10,
     polynomial_degree=2, 
     alpha=0.1, 
     sigma=0.1, 
@@ -34,6 +34,9 @@ y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 print(f"Accuracy: {accuracy:.4f}")
 
+# Print classification report
+print(classification_report(y_test, y_pred))
+
 # Get symbolic formulas for each class
 formulas = model.get_formula()
 for i, formula in enumerate(formulas):
@@ -44,4 +47,12 @@ importances = model.feature_importances()
 print("Feature Importances:", importances)
 
 # Save the model (optional)
-model.save("iris_model.txt")
+model.save("outputs/iris_model.json")
+
+# Load the model (optional)
+print("Loaded Model:")
+loaded_model = OIKANClassifier()
+loaded_model.load("outputs/iris_model.json")
+formulas_loaded = loaded_model.get_formula()
+for i, formula in enumerate(formulas_loaded):
+    print(f"Class {i} Formula (loaded):", formula)

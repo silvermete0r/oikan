@@ -5,6 +5,7 @@ import torch.optim as optim
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import Lasso
 from abc import ABC, abstractmethod
+import json
 from .neural import TabularNet
 from .utils import evaluate_basis_functions, get_features_involved
 
@@ -112,45 +113,64 @@ class OIKAN(ABC):
         return importances / total if total > 0 else importances
 
     def save(self, path):
-        """Saves the symbolic model to a .txt file."""
+        """
+        Saves the symbolic model to a .json file.
+        
+        Parameters:
+        -----------
+        path : str
+            File path to save the model. Should end with .json
+        """
         if self.symbolic_model is None:
             raise ValueError("Model not fitted yet.")
+            
+        if not path.endswith('.json'):
+            path = path + '.json'
+            
+        # Convert numpy arrays and other non-serializable types to lists
+        model_data = {
+            'n_features': self.symbolic_model['n_features'],
+            'degree': self.symbolic_model['degree'],
+            'basis_functions': self.symbolic_model['basis_functions']
+        }
+        
+        if 'coefficients' in self.symbolic_model:
+            model_data['coefficients'] = self.symbolic_model['coefficients']
+        else:
+            model_data['coefficients_list'] = [coef for coef in self.symbolic_model['coefficients_list']]
+            if hasattr(self, 'classes_'):
+                model_data['classes'] = self.classes_.tolist()
+        
         with open(path, 'w') as f:
-            f.write(f"n_features: {self.symbolic_model['n_features']}\n")
-            f.write(f"degree: {self.symbolic_model['degree']}\n")
-            f.write(f"basis_functions: {','.join(self.symbolic_model['basis_functions'])}\n")
-            if 'coefficients' in self.symbolic_model:
-                f.write(f"coefficients: {','.join(map(str, self.symbolic_model['coefficients']))}\n")
-            else:
-                for c, coef in enumerate(self.symbolic_model['coefficients_list']):
-                    f.write(f"coefficients_class{c}: {','.join(map(str, coef))}\n")
+            json.dump(model_data, f, indent=2)
 
     def load(self, path):
-        """Loads the symbolic model from a .txt file."""
+        """
+        Loads the symbolic model from a .json file.
+        
+        Parameters:
+        -----------
+        path : str
+            File path to load the model from. Should end with .json
+        """
+        if not path.endswith('.json'):
+            path = path + '.json'
+            
         with open(path, 'r') as f:
-            lines = f.readlines()
-            n_features = int(lines[0].split(':')[1].strip())
-            degree = int(lines[1].split(':')[1].strip())
-            basis_functions = lines[2].split(':')[1].strip().split(',')
-            if 'coefficients' in lines[3]:
-                coefficients = list(map(float, lines[3].split(':')[1].strip().split(',')))
-                self.symbolic_model = {
-                    'n_features': n_features,
-                    'degree': degree,
-                    'basis_functions': basis_functions,
-                    'coefficients': coefficients
-                }
-            else:
-                coefficients_list = []
-                for line in lines[3:]:
-                    coef = list(map(float, line.split(':')[1].strip().split(',')))
-                    coefficients_list.append(coef)
-                self.symbolic_model = {
-                    'n_features': n_features,
-                    'degree': degree,
-                    'basis_functions': basis_functions,
-                    'coefficients_list': coefficients_list
-                }
+            model_data = json.load(f)
+            
+        self.symbolic_model = {
+            'n_features': model_data['n_features'],
+            'degree': model_data['degree'],
+            'basis_functions': model_data['basis_functions']
+        }
+        
+        if 'coefficients' in model_data:
+            self.symbolic_model['coefficients'] = model_data['coefficients']
+        else:
+            self.symbolic_model['coefficients_list'] = model_data['coefficients_list']
+            if 'classes' in model_data:
+                self.classes_ = np.array(model_data['classes'])
 
     def _train_neural_net(self, X, y, output_size, loss_fn):
         """Trains the neural network on the input data."""

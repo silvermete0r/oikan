@@ -7,6 +7,6 @@ setup(
         "torch",
         "numpy",
         "scikit-learn",
-        "tqdm"  # Add tqdm for progress bars
+        "tqdm"
     ]
 )
