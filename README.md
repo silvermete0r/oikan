@@ -204,7 +204,7 @@ If you use OIKAN in your research, please cite:
 
 ```bibtex
 @software{oikan2025,
-  title = {OIKAN: Optimized Interpretable Kolmogorov-Arnold Networks},
+  title = {OIKAN: Neuro-Symbolic ML for Scientific Discovery},
   author = {Zhalgasbayev, Arman},
   year = {2025},
   url = {https://github.com/silvermete0r/OIKAN}
