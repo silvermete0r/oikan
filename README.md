@@ -39,7 +39,7 @@ OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation
 
 2. **Neural Implementation**: OIKAN uses a specialized architecture combining:
    - Feature transformation layers with interpretable basis functions
-   - Symbolic regression for formula extraction
+   - Symbolic regression for formula extraction (ElasticNet-based)
    - Automatic pruning of insignificant terms
    
    ```python
@@ -58,15 +58,19 @@ OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation
    SYMBOLIC_FUNCTIONS = {
        'linear': 'x',           # Direct relationships
        'quadratic': 'x^2',      # Non-linear patterns
+       'cubic': 'x^3',         # Higher-order relationships
        'interaction': 'x_i x_j', # Feature interactions
-       'higher_order': 'x^n'    # Polynomial terms
+       'higher_order': 'x^n',    # Polynomial terms
+       'trigonometric': 'sin(x)', # Trigonometric functions
+       'exponential': 'exp(x)',  # Exponential growth
+       'logarithmic': 'log(x)'  # Logarithmic relationships
    }
    ```
 
 4. **Formula Extraction Process**:
    - Train neural network on raw data
    - Generate augmented samples for better coverage
-   - Perform L1-regularized symbolic regression
+   - Perform L1-regularized symbolic regression (alpha)
    - Prune terms with coefficients below threshold
    - Export human-readable mathematical expressions
 
@@ -97,8 +101,9 @@ model = OIKANRegressor(
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
     augmentation_factor=5, # Augmentation factor for data generation
     polynomial_degree=2, # Degree of polynomial basis functions
-    alpha=0.1, # L1 regularization strength
+    alpha=0.1, # L1 regularization strength (Symbolic regression)
     sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    top_k=5, # Number of top features to select (Symbolic regression)
     epochs=100, # Number of training epochs
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
@@ -146,8 +151,9 @@ model = OIKANClassifier(
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
     augmentation_factor=10, # Augmentation factor for data generation
     polynomial_degree=2, # Degree of polynomial basis functions
-    alpha=0.1, # L1 regularization strength
+    alpha=0.1, # L1 regularization strength (Symbolic regression)
     sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    top_k=5, # Number of top features to select (Symbolic regression)
     epochs=100, # # Number of training epochs
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
