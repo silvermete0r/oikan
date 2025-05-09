@@ -8,6 +8,9 @@ from abc import ABC, abstractmethod
 import json
 from .neural import TabularNet
 from .utils import evaluate_basis_functions, get_features_involved
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, accuracy_score
+import sys
 
 class OIKAN(ABC):
     """
@@ -35,10 +38,12 @@ class OIKAN(ABC):
         Batch size for neural network training.
     verbose : bool, optional (default=False)
         Whether to display training progress.
+    evaluate_nn : bool, optional (default=False)
+        Whether to evaluate neural network performance before full training.
     """
     def __init__(self, hidden_sizes=[64, 64], activation='relu', augmentation_factor=10, 
                  polynomial_degree=2, alpha=0.1, sigma=0.1, epochs=100, lr=0.001, batch_size=32, 
-                 verbose=False):
+                 verbose=False, evaluate_nn=False):
         self.hidden_sizes = hidden_sizes
         self.activation = activation
         self.augmentation_factor = augmentation_factor
@@ -49,8 +54,10 @@ class OIKAN(ABC):
         self.lr = lr
         self.batch_size = batch_size
         self.verbose = verbose
+        self.evaluate_nn = evaluate_nn
         self.neural_net = None
         self.symbolic_model = None
+        self.evaluation_done = False
 
     @abstractmethod
     def fit(self, X, y):
@@ -172,10 +179,53 @@ class OIKAN(ABC):
             if 'classes' in model_data:
                 self.classes_ = np.array(model_data['classes'])
 
-    def _train_neural_net(self, X, y, output_size, loss_fn):
-        """Trains the neural network on the input data."""
+    def _evaluate_neural_net(self, X, y, output_size, loss_fn):
+        """Evaluates neural network performance on train-test split."""
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
         input_size = X.shape[1]
         self.neural_net = TabularNet(input_size, self.hidden_sizes, output_size, self.activation)
+        optimizer = optim.Adam(self.neural_net.parameters(), lr=self.lr)
+        
+        # Train on the training set
+        self._train_neural_net(X_train, y_train, output_size, loss_fn)
+        
+        # Evaluate on test set
+        self.neural_net.eval()
+        with torch.no_grad():
+            y_pred = self.neural_net(torch.tensor(X_test, dtype=torch.float32))
+            if output_size == 1:  # Regression
+                y_pred = y_pred.numpy()
+                score = r2_score(y_test, y_pred)
+                metric_name = "R² Score"
+            else:  # Classification
+                y_pred = torch.argmax(y_pred, dim=1).numpy()
+                y_test = torch.argmax(y_test, dim=1).numpy()
+                score = accuracy_score(y_test, y_pred)
+                metric_name = "Accuracy"
+        
+        print(f"\nNeural Network Evaluation:")
+        print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
+        print(f"{metric_name}: {score:.4f}")
+        
+        # Ask user for confirmation
+        response = input("\nProceed with full training and symbolic regression? [Y/n]: ").lower()
+        if response not in ['y', 'yes']:
+            sys.exit("Training cancelled by user.")
+
+        # Retrain on full dataset
+        self._train_neural_net(X, y, output_size, loss_fn)
+
+    def _train_neural_net(self, X, y, output_size, loss_fn):
+        """Trains the neural network on the input data."""
+        if self.evaluate_nn and not self.evaluation_done:
+            self.evaluation_done = True
+            self._evaluate_neural_net(X, y, output_size, loss_fn)
+            return
+            
+        input_size = X.shape[1]
+        if self.neural_net is None:
+            self.neural_net = TabularNet(input_size, self.hidden_sizes, output_size, self.activation)
         optimizer = optim.Adam(self.neural_net.parameters(), lr=self.lr)
         dataset = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32), 
                                                torch.tensor(y, dtype=torch.float32))
@@ -263,10 +313,14 @@ class OIKANRegressor(OIKAN):
         X = np.asarray(X)
         y = np.asarray(y).reshape(-1, 1)
         self._train_neural_net(X, y, output_size=1, loss_fn=nn.MSELoss())
+        if self.verbose:
+            print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
         X_aug = self._generate_augmented_data(X)
         self.neural_net.eval()
         with torch.no_grad():
             y_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
+        if self.verbose:
+            print(f"Augmented data: features shape: {X_aug.shape} | target shape: {y_aug.shape}")
         self._perform_symbolic_regression(X_aug, y_aug)
 
     def predict(self, X):
@@ -311,10 +365,14 @@ class OIKANClassifier(OIKAN):
         n_classes = len(self.classes_)
         y_onehot = nn.functional.one_hot(torch.tensor(y_encoded), num_classes=n_classes).float()
         self._train_neural_net(X, y_onehot, output_size=n_classes, loss_fn=nn.CrossEntropyLoss())
+        if self.verbose:
+            print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
         X_aug = self._generate_augmented_data(X)
         self.neural_net.eval()
         with torch.no_grad():
             logits_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
+        if self.verbose:
+            print(f"Augmented data: features shape: {X_aug.shape} | target shape: {logits_aug.shape}")
         self._perform_symbolic_regression(X_aug, logits_aug)
 
     def predict(self, X):

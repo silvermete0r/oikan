@@ -16,11 +16,12 @@ model = OIKANClassifier(
     activation='relu',
     augmentation_factor=10,
     polynomial_degree=2, 
-    alpha=0.1, 
+    alpha=0.1,
     sigma=0.1, 
     epochs=100, 
     lr=0.001, 
     batch_size=32, 
+    evaluate_nn=True,
     verbose=True
 )
 
