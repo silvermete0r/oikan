@@ -184,7 +184,7 @@ loaded_model.load("outputs/model.json")
 
 ### Architecture Diagram
 
-*Will be updated soon..*
+![OIKAN v0.0.3(1) Architecture](https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan-v0.0.3(1)-architecture-oop.png)
 
 ## Contributing
 
