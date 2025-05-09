@@ -18,7 +18,7 @@ class OIKAN(ABC):
     hidden_sizes : list, optional (default=[64, 64])
         List of hidden layer sizes for the neural network.
     activation : str, optional (default='relu')
-        Activation function for the neural network ('relu' or 'tanh').
+        Activation function for the neural network ('relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu').
     augmentation_factor : int, optional (default=10)
         Number of augmented samples per original sample.
     polynomial_degree : int, optional (default=2)
@@ -61,7 +61,7 @@ class OIKAN(ABC):
         pass
 
     def get_formula(self):
-        """Returns the symbolic formula(s) as a string or list of strings."""
+        """Returns the symbolic formula(s) as a string (regression) or list of strings (classification)."""
         if self.symbolic_model is None:
             raise ValueError("Model not fitted yet.")
         basis_functions = self.symbolic_model['basis_functions']
