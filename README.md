@@ -102,7 +102,8 @@ model = OIKANRegressor(
     epochs=100, # Number of training epochs
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
-    verbose=True # Verbose output during training
+    verbose=True, # Verbose output during training
+    evaluate_nn=True # Validate neural network performance before full process
 )
 
 # Fit the model
@@ -150,7 +151,8 @@ model = OIKANClassifier(
     epochs=100, # # Number of training epochs
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
-    verbose=True # Verbose output during training
+    verbose=True, # Verbose output during training
+    evaluate_nn=True # Validate neural network performance before full process
 )
 
 # Fit the model

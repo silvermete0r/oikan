@@ -3,13 +3,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import ElasticNet
 from abc import ABC, abstractmethod
 import json
 from .neural import TabularNet
 from .utils import evaluate_basis_functions, get_features_involved
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, accuracy_score
+from .exceptions import *
 import sys
 
 class OIKAN(ABC):
@@ -30,6 +31,8 @@ class OIKAN(ABC):
         L1 regularization strength for Lasso in symbolic regression.
     sigma : float, optional (default=0.1)
         Standard deviation of Gaussian noise for data augmentation.
+    top_k : int, optional (default=5)
+        Number of top features to select in hierarchical symbolic regression.
     epochs : int, optional (default=100)
         Number of epochs for neural network training.
     lr : float, optional (default=0.001)
@@ -43,7 +46,28 @@ class OIKAN(ABC):
     """
     def __init__(self, hidden_sizes=[64, 64], activation='relu', augmentation_factor=10, 
                  polynomial_degree=2, alpha=0.1, sigma=0.1, epochs=100, lr=0.001, batch_size=32, 
-                 verbose=False, evaluate_nn=False):
+                 verbose=False, evaluate_nn=False, top_k=5):
+        if not isinstance(hidden_sizes, list) or not all(isinstance(x, int) and x > 0 for x in hidden_sizes):
+            raise InvalidParameterError("hidden_sizes must be a list of positive integers")
+        if activation not in ['relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu']:
+            raise InvalidParameterError(f"Unsupported activation function: {activation}")
+        if not isinstance(augmentation_factor, int) or augmentation_factor < 1:
+            raise InvalidParameterError("augmentation_factor must be a positive integer")
+        if not isinstance(polynomial_degree, int) or polynomial_degree < 1:
+            raise InvalidParameterError("polynomial_degree must be a positive integer")
+        if not isinstance(top_k, int) or top_k < 1:
+            raise InvalidParameterError("top_k must be a positive integer")
+        if not 0 < lr < 1:
+            raise InvalidParameterError("Learning rate must be between 0 and 1")
+        if not isinstance(batch_size, int) or batch_size < 1:
+            raise InvalidParameterError("batch_size must be a positive integer")
+        if not isinstance(epochs, int) or epochs < 1:
+            raise InvalidParameterError("epochs must be a positive integer")
+        if not 0 <= alpha <= 1:
+            raise InvalidParameterError("alpha must be between 0 and 1")
+        if sigma <= 0:
+            raise InvalidParameterError("sigma must be positive")
+        
         self.hidden_sizes = hidden_sizes
         self.activation = activation
         self.augmentation_factor = augmentation_factor
@@ -55,6 +79,7 @@ class OIKAN(ABC):
         self.batch_size = batch_size
         self.verbose = verbose
         self.evaluate_nn = evaluate_nn
+        self.top_k = top_k
         self.neural_net = None
         self.symbolic_model = None
         self.evaluation_done = False
@@ -74,13 +99,13 @@ class OIKAN(ABC):
         basis_functions = self.symbolic_model['basis_functions']
         if 'coefficients' in self.symbolic_model:
             coefficients = self.symbolic_model['coefficients']
-            formula = " + ".join([f"{coefficients[i]:.3f}*{basis_functions[i]}" 
+            formula = " + ".join([f"{coefficients[i]:.5f}*{basis_functions[i]}" 
                                 for i in range(len(coefficients)) if coefficients[i] != 0])
             return formula if formula else "0"
         else:
             formulas = []
             for c, coef in enumerate(self.symbolic_model['coefficients_list']):
-                formula = " + ".join([f"{coef[i]:.3f}*{basis_functions[i]}" 
+                formula = " + ".join([f"{coef[i]:.5f}*{basis_functions[i]}" 
                                     for i in range(len(coef)) if coef[i] != 0])
                 formulas.append(f"Class {self.classes_[c]}: {formula if formula else '0'}")
             return formulas
@@ -129,27 +154,33 @@ class OIKAN(ABC):
             File path to save the model. Should end with .json
         """
         if self.symbolic_model is None:
-            raise ValueError("Model not fitted yet.")
-            
+            raise ModelNotFittedError("Model must be fitted before saving")
+        
         if not path.endswith('.json'):
             path = path + '.json'
+        
+        try:    
+            # Convert numpy arrays and other non-serializable types to lists
+            model_data = {
+                'n_features': self.symbolic_model['n_features'],
+                'degree': self.symbolic_model['degree'],
+                'basis_functions': self.symbolic_model['basis_functions']
+            }
             
-        # Convert numpy arrays and other non-serializable types to lists
-        model_data = {
-            'n_features': self.symbolic_model['n_features'],
-            'degree': self.symbolic_model['degree'],
-            'basis_functions': self.symbolic_model['basis_functions']
-        }
+            if 'coefficients' in self.symbolic_model:
+                model_data['coefficients'] = self.symbolic_model['coefficients']
+            else:
+                model_data['coefficients_list'] = [coef for coef in self.symbolic_model['coefficients_list']]
+                if hasattr(self, 'classes_'):
+                    model_data['classes'] = self.classes_.tolist()
+            
+            with open(path, 'w') as f:
+                json.dump(model_data, f, indent=2)
+        except Exception as e:
+            raise ModelSerializationError(f"Failed to save model: {str(e)}")
         
-        if 'coefficients' in self.symbolic_model:
-            model_data['coefficients'] = self.symbolic_model['coefficients']
-        else:
-            model_data['coefficients_list'] = [coef for coef in self.symbolic_model['coefficients_list']]
-            if hasattr(self, 'classes_'):
-                model_data['classes'] = self.classes_.tolist()
-        
-        with open(path, 'w') as f:
-            json.dump(model_data, f, indent=2)
+        if self.verbose:
+            print(f"Model saved to {path}")
 
     def load(self, path):
         """
@@ -162,22 +193,28 @@ class OIKAN(ABC):
         """
         if not path.endswith('.json'):
             path = path + '.json'
-            
-        with open(path, 'r') as f:
-            model_data = json.load(f)
-            
-        self.symbolic_model = {
-            'n_features': model_data['n_features'],
-            'degree': model_data['degree'],
-            'basis_functions': model_data['basis_functions']
-        }
         
-        if 'coefficients' in model_data:
-            self.symbolic_model['coefficients'] = model_data['coefficients']
-        else:
-            self.symbolic_model['coefficients_list'] = model_data['coefficients_list']
-            if 'classes' in model_data:
-                self.classes_ = np.array(model_data['classes'])
+        try:
+            with open(path, 'r') as f:
+                model_data = json.load(f)
+                
+            self.symbolic_model = {
+                'n_features': model_data['n_features'],
+                'degree': model_data['degree'],
+                'basis_functions': model_data['basis_functions']
+            }
+            
+            if 'coefficients' in model_data:
+                self.symbolic_model['coefficients'] = model_data['coefficients']
+            else:
+                self.symbolic_model['coefficients_list'] = model_data['coefficients_list']
+                if 'classes' in model_data:
+                    self.classes_ = np.array(model_data['classes'])
+        except Exception as e:
+            raise ModelSerializationError(f"Failed to load model: {str(e)}")
+        
+        if self.verbose:
+            print(f"Model loaded from {path}")
 
     def _evaluate_neural_net(self, X, y, output_size, loss_fn):
         """Evaluates neural network performance on train-test split."""
@@ -253,7 +290,6 @@ class OIKAN(ABC):
 
     def _generate_augmented_data(self, X):
         """Generates augmented data by adding Gaussian noise."""
-        n_samples = X.shape[0]
         X_aug = []
         for _ in range(self.augmentation_factor):
             noise = np.random.normal(0, self.sigma, X.shape)
@@ -262,32 +298,102 @@ class OIKAN(ABC):
         return np.vstack(X_aug)
 
     def _perform_symbolic_regression(self, X, y):
-        """Performs symbolic regression using polynomial features and Lasso."""
-        poly = PolynomialFeatures(degree=self.polynomial_degree, include_bias=True)
-        X_poly = poly.fit_transform(X)
-        model = Lasso(alpha=self.alpha, fit_intercept=False)
-        model.fit(X_poly, y)
+        """
+        Performs hierarchical symbolic regression using a two-stage approach.
+        
+        Parameters:
+        -----------
+        X : array-like of shape (n_samples, n_features)
+            Input data.
+        y : array-like of shape (n_samples,) or (n_samples, n_classes)
+            Target values or logits.
+        """
+        n_features = X.shape[1]
+        self.top_k = min(self.top_k, n_features)
+        
+        if self.top_k < 1:
+            raise InvalidParameterError("top_k must be at least 1")
+
+        if np.any(np.isnan(X)) or np.any(np.isnan(y)):
+            raise NumericalInstabilityError("Input data contains NaN values")
+
+        if np.any(np.isinf(X)) or np.any(np.isinf(y)):
+            raise NumericalInstabilityError("Input data contains infinite values")
+
+        # Stage 1: Coarse Model
+        coarse_degree = 2  # Fixed low degree for coarse model
+        poly_coarse = PolynomialFeatures(degree=coarse_degree, include_bias=True)
+        X_poly_coarse = poly_coarse.fit_transform(X)
+        model_coarse = ElasticNet(alpha=self.alpha, fit_intercept=False)
+        model_coarse.fit(X_poly_coarse, y)
+
+        # Compute feature importances for original features
+        basis_functions_coarse = poly_coarse.get_feature_names_out()
         if len(y.shape) == 1 or y.shape[1] == 1:
-            coef = model.coef_.flatten()
-            selected_indices = np.where(np.abs(coef) > 1e-6)[0]
+            coef_coarse = model_coarse.coef_.flatten()
+        else:
+            coef_coarse = np.sum(np.abs(model_coarse.coef_), axis=0)
+
+        importances = np.zeros(X.shape[1])
+        for i, func in enumerate(basis_functions_coarse):
+            features_involved = get_features_involved(func)
+            for idx in features_involved:
+                importances[idx] += np.abs(coef_coarse[i])
+        
+        if np.all(importances == 0):
+            raise FeatureExtractionError("Failed to compute feature importances - all values are zero")
+
+        # Select top K features
+        top_k_indices = np.argsort(importances)[::-1][:self.top_k]
+
+        # Stage 2: Refined Model
+        # ~ generate additional non-linear features for top K features
+        additional_features = []
+        additional_names = []
+        for i in top_k_indices:
+            # Higher-degree polynomial
+            additional_features.append(X[:, i]**3)
+            additional_names.append(f'x{i}^3')
+            # Non-linear transformations
+            additional_features.append(np.log1p(np.abs(X[:, i])))
+            additional_names.append(f'log1p_x{i}')
+            additional_features.append(np.exp(np.clip(X[:, i], -10, 10)))
+            additional_names.append(f'exp_x{i}')
+            additional_features.append(np.sin(X[:, i]))
+            additional_names.append(f'sin_x{i}')
+        
+        # Combine features
+        X_additional = np.column_stack(additional_features)
+        X_refined = np.hstack([X_poly_coarse, X_additional])
+        basis_functions_refined = list(basis_functions_coarse) + additional_names
+
+        # Fit refined model
+        model_refined = ElasticNet(alpha=self.alpha, fit_intercept=False)
+        model_refined.fit(X_refined, y)
+
+        # Store symbolic model
+        if len(y.shape) == 1 or y.shape[1] == 1:
+            # Regression
+            coef_refined = model_refined.coef_.flatten()
+            selected_indices = np.where(np.abs(coef_refined) > 1e-6)[0]
             self.symbolic_model = {
                 'n_features': X.shape[1],
-                'degree': self.polynomial_degree,
-                'basis_functions': poly.get_feature_names_out()[selected_indices].tolist(),
-                'coefficients': coef[selected_indices].tolist()
+                'degree': self.polynomial_degree, 
+                'basis_functions': [basis_functions_refined[i] for i in selected_indices],
+                'coefficients': coef_refined[selected_indices].tolist()
             }
         else:
+            # Classification
             coefficients_list = []
-            # Note: Using the same basis functions across classes for simplicity
             selected_indices = set()
             for c in range(y.shape[1]):
-                coef = model.coef_[c]
+                coef = model_refined.coef_[c]
                 indices = np.where(np.abs(coef) > 1e-6)[0]
                 selected_indices.update(indices)
             selected_indices = list(selected_indices)
-            basis_functions = poly.get_feature_names_out()[selected_indices].tolist()
+            basis_functions = [basis_functions_refined[i] for i in selected_indices]
             for c in range(y.shape[1]):
-                coef = model.coef_[c]
+                coef = model_refined.coef_[c]
                 coef_selected = coef[selected_indices].tolist()
                 coefficients_list.append(coef_selected)
             self.symbolic_model = {
