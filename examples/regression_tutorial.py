@@ -22,6 +22,8 @@ model = OIKANRegressor(
     epochs=100, 
     lr=0.001, 
     batch_size=32, 
+    top_k=10,
+    evaluate_nn=True,
     verbose=True
 )
 
