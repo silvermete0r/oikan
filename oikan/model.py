@@ -127,12 +127,12 @@ class OIKAN(ABC):
         else:
             if 'coefficients' in self.symbolic_model:
                 formula = get_latex_formula(self.symbolic_model['basis_functions'], self.symbolic_model['coefficients'], self.symbolic_model['n_features'])
-                return formula.latex()
+                return formula
             else: 
                 formulas = []
                 for c, coef in enumerate(self.symbolic_model['coefficients_list']):
                     formula = get_latex_formula(self.symbolic_model['basis_functions'], coef, self.symbolic_model['n_features'])
-                    formulas.append(f"Class {self.classes_[c]}: {formula.latex()}")
+                    formulas.append(f"Class {self.classes_[c]}: {formula}")
                 return formulas
 
     def feature_importances(self):

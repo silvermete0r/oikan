@@ -53,6 +53,10 @@ print("Loaded Model:")
 loaded_model = OIKANRegressor()
 loaded_model.load("outputs/california_housing_model.json")
 formula_loaded = loaded_model.get_formula(type='original')
-print("Symbolic Formula (loaded):", formula_loaded)
+print("> Symbolic Formula (loaded):", formula_loaded)
+
 simplified_formula = loaded_model.get_formula(type='sympied')
 print("Symbolic Formula (simplified):", simplified_formula)
+
+latex_formula = loaded_model.get_formula(type='latex')
+print("LaTeX Formula:", latex_formula)

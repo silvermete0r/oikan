@@ -56,6 +56,13 @@ loaded_model.load("outputs/iris_model.json")
 formulas_loaded = loaded_model.get_formula(type='original')
 for formula in formulas_loaded:
     print(formula)
+
+print("Simplified Formulas:")
 simplified_formulas = loaded_model.get_formula(type='sympied')
 for simplified_formula in simplified_formulas:
     print(simplified_formula)
+
+print("LaTeX Formulas:")
+latex_formulas = loaded_model.get_formula(type='latex')
+for latex_formula in latex_formulas:
+    print(latex_formula)
