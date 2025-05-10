@@ -7,7 +7,7 @@ from sklearn.linear_model import ElasticNet
 from abc import ABC, abstractmethod
 import json
 from .neural import TabularNet
-from .utils import evaluate_basis_functions, get_features_involved, sympify_formula
+from .utils import evaluate_basis_functions, get_features_involved, sympify_formula, get_latex_formula
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, accuracy_score
 from .exceptions import *
@@ -93,15 +93,15 @@ class OIKAN(ABC):
         
         Parameter:
         --------
-        type : str, optional (default='original') other option: 'sympied'
+        type : str, optional (default='original') other options: 'sympied', 'latex'
             'original' returns the original formula with coefficients, 'sympied' returns sympy simplified formula.
         """
-        if type not in ['original', 'sympied']:
-            raise InvalidParameterError("Invalid type. Choose 'original' or 'sympied'.")
+        if type.lower() not in ['original', 'sympied', 'latex']:
+            raise InvalidParameterError("Invalid type. Choose 'original', 'sympied', 'latex'.")
         if self.symbolic_model is None:
             raise ValueError("Model not fitted yet.")
         basis_functions = self.symbolic_model['basis_functions']
-        if type == 'original':
+        if type.lower() == 'original':
             if 'coefficients' in self.symbolic_model:
                 coefficients = self.symbolic_model['coefficients']
                 formula = " + ".join([f"{coefficients[i]:.6f}*{basis_functions[i]}" 
@@ -114,7 +114,7 @@ class OIKAN(ABC):
                                         for i in range(len(coef)) if coef[i] != 0])
                     formulas.append(f"Class {self.classes_[c]}: {formula if formula else '0'}")
                 return formulas
-        else:
+        elif type.lower() == 'sympied':
             if 'coefficients' in self.symbolic_model:
                 formula = sympify_formula(self.symbolic_model['basis_functions'], self.symbolic_model['coefficients'], self.symbolic_model['n_features'])
                 return formula
@@ -123,6 +123,16 @@ class OIKAN(ABC):
                 for c, coef in enumerate(self.symbolic_model['coefficients_list']):
                     formula = sympify_formula(self.symbolic_model['basis_functions'], coef, self.symbolic_model['n_features'])
                     formulas.append(f"Class {self.classes_[c]}: {formula}")
+                return formulas
+        else:
+            if 'coefficients' in self.symbolic_model:
+                formula = get_latex_formula(self.symbolic_model['basis_functions'], self.symbolic_model['coefficients'], self.symbolic_model['n_features'])
+                return formula.latex()
+            else: 
+                formulas = []
+                for c, coef in enumerate(self.symbolic_model['coefficients_list']):
+                    formula = get_latex_formula(self.symbolic_model['basis_functions'], coef, self.symbolic_model['n_features'])
+                    formulas.append(f"Class {self.classes_[c]}: {formula.latex()}")
                 return formulas
 
     def feature_importances(self):
