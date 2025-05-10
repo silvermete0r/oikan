@@ -221,6 +221,73 @@ loaded_model.load("outputs/model.json")</code></pre>
             </div>
         </section>
 
+        <section id="compilers" class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Model Compilers</h2>
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <p class="text-gray-600 mb-4">
+                    OIKAN provides symbolic model compilers to convert generated formulas into different programming languages,
+                    making them suitable for low-resource systems and computationally efficient solutions.
+                </p>
+                <p class="text-gray-600 mb-4">
+                    Currently supported languages: 
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Python</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">C++</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">C</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">JavaScript</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Rust</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Go</span>
+                </p>
+                <div class="mt-4">
+                    <h3 class="text-xl font-semibold mb-4">Example: Python Compiler</h3>
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium mb-2">1. Regression Model</h4>
+                        <pre class="language-python"><code>import numpy as np
+import json
+
+def predict(X, symbolic_model):
+    X = np.asarray(X)
+    X_transformed = evaluate_basis_functions(X, symbolic_model['basis_functions'], 
+                                            symbolic_model['n_features'])
+    return np.dot(X_transformed, symbolic_model['coefficients'])
+
+if __name__ == "__main__":
+    with open('outputs/california_housing_model.json', 'r') as f:
+        symbolic_model = json.load(f)
+    X = np.random.rand(10, symbolic_model['n_features'])
+    y_pred = predict(X, symbolic_model)
+    print(y_pred)</code></pre>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium mb-2">2. Classification Model</h4>
+                        <pre class="language-python"><code>import numpy as np
+import json
+
+def predict(X, symbolic_model):
+    X = np.asarray(X)
+    X_transformed = evaluate_basis_functions(X, symbolic_model['basis_functions'], 
+                                            symbolic_model['n_features'])
+    logits = np.dot(X_transformed, np.array(symbolic_model['coefficients_list']).T)
+    probabilities = np.exp(logits) / np.sum(np.exp(logits), axis=1, keepdims=True)
+    return np.argmax(probabilities, axis=1)
+
+if __name__ == "__main__":
+    with open('outputs/iris_model.json', 'r') as f:
+        symbolic_model = json.load(f)
+    X = np.array([[5.1, 3.5, 1.4, 0.2],
+                  [7.0, 3.2, 4.7, 1.4],
+                  [6.3, 3.3, 6.0, 2.5]])
+    y_pred = predict(X, symbolic_model)
+    print(y_pred)</code></pre>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="https://github.com/silvermete0r/oikan/tree/main/model_compilers" target="_blank" class="text-blue-600 hover:underline">
+                        View all model compilers →
+                    </a>
+                </div>
+            </div>
+        </section>
+
         <section id="contribute" class="mb-16">
             <h2 class="text-3xl font-bold text-gray-900 mb-6">Contribution</h2>
             <div class="bg-white rounded-lg shadow-lg p-6">
