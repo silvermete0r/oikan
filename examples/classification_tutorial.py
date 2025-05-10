@@ -15,7 +15,6 @@ model = OIKANClassifier(
     hidden_sizes=[32, 32], 
     activation='relu',
     augmentation_factor=10,
-    polynomial_degree=2, 
     alpha=0.1,
     sigma=0.1, 
     epochs=100, 

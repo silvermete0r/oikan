@@ -16,8 +16,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 model = OIKANRegressor(
     hidden_sizes=[32, 32], 
     activation='relu', 
-    augmentation_factor=5, 
-    polynomial_degree=2, 
+    augmentation_factor=1,
     alpha=0.1, 
     sigma=0.1, 
     epochs=100, 
