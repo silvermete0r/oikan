@@ -174,7 +174,31 @@ def sympify_formula(basis_functions, coefficients, n_features, threshold=0.00005
     formula = " + ".join(terms).replace("+ -", "- ")
     return formula if formula else "0"
 
+def get_latex_formula(basis_functions, coefficients, n_features, threshold=0.00005):
+    """
+    Generates a LaTeX formula from the basis functions and coefficients.
+    
+    Parameters:
+    -----------
+    basis_functions : list
+        List of basis function strings (e.g., 'x0', 'x0^2', 'x0 x1', 'exp_x0').
+    coefficients : list
+        List of coefficients corresponding to each basis function.
+    n_features : int
+        Number of input features.
+    threshold : float, optional (default=0.00005)
+        Coefficients with absolute value below this are excluded.
+    
+    Returns:
+    --------
+    str
+        LaTeX formula as a string, or '0' if empty.
+    """
+    formula = sympify_formula(basis_functions, coefficients, n_features, threshold)
+    return sp.latex(sp.sympify(formula))
+
 if __name__ == "__main__":
     with open('outputs/california_housing_model.json', 'r') as f:
         model = json.load(f)
-    print('Simplified formula:', sympify_formula(model['basis_functions'], model['coefficients'], model['n_features']))
+    print('Sympified formula:', sympify_formula(model['basis_functions'], model['coefficients'], model['n_features']))
+    print('LaTeX formula:', get_latex_formula(model['basis_functions'], model['coefficients'], model['n_features']))
