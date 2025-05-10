@@ -1,6 +1,24 @@
 import json
 import numpy as np
 
+def softmax(X):
+    """
+    Computes the softmax of the input array.
+    
+    Parameters:
+    -----------
+    X : array-like
+        Input data.
+    
+    Returns:
+    --------
+    softmax_X : ndarray
+        Softmax of the input data.
+    """
+    X -= np.max(X, axis=1, keepdims=True)
+    e_X = np.exp(X)
+    return e_X / np.sum(e_X, axis=1, keepdims=True)
+
 def evaluate_basis_functions(X, basis_functions, n_features):
     """
     Evaluates basis functions on the input data.
@@ -66,7 +84,7 @@ def predict(X, symbolic_model):
     X_transformed = evaluate_basis_functions(X, symbolic_model['basis_functions'], 
                                             symbolic_model['n_features'])
     logits = np.dot(X_transformed, np.array(symbolic_model['coefficients_list']).T)
-    probabilities = np.exp(logits) / np.sum(np.exp(logits), axis=1, keepdims=True)
+    probabilities = softmax(logits)
     return np.argmax(probabilities, axis=1)
 
 if __name__ == "__main__":
