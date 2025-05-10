@@ -15,7 +15,6 @@ model = OIKANClassifier(
     hidden_sizes=[32, 32], 
     activation='relu',
     augmentation_factor=10,
-    polynomial_degree=2, 
     alpha=0.1,
     sigma=0.1, 
     epochs=100, 
@@ -54,6 +53,16 @@ model.save("outputs/iris_model.json")
 print("Loaded Model:")
 loaded_model = OIKANClassifier()
 loaded_model.load("outputs/iris_model.json")
-formulas_loaded = loaded_model.get_formula()
-for i, formula in enumerate(formulas_loaded):
-    print(f"Class {i} Formula (loaded):", formula)
+formulas_loaded = loaded_model.get_formula(type='original')
+for formula in formulas_loaded:
+    print(formula)
+
+print("Simplified Formulas:")
+simplified_formulas = loaded_model.get_formula(type='sympied')
+for simplified_formula in simplified_formulas:
+    print(simplified_formula)
+
+print("LaTeX Formulas:")
+latex_formulas = loaded_model.get_formula(type='latex')
+for latex_formula in latex_formulas:
+    print(latex_formula)

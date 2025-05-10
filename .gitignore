@@ -2,3 +2,5 @@
 __pycache__/
 dist/
 oikan.egg-info/
+.vscode/
+*.egg-info/

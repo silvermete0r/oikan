@@ -7,7 +7,7 @@ from sklearn.linear_model import ElasticNet
 from abc import ABC, abstractmethod
 import json
 from .neural import TabularNet
-from .utils import evaluate_basis_functions, get_features_involved
+from .utils import evaluate_basis_functions, get_features_involved, sympify_formula, get_latex_formula
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, accuracy_score
 from .exceptions import *
@@ -25,8 +25,6 @@ class OIKAN(ABC):
         Activation function for the neural network ('relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu').
     augmentation_factor : int, optional (default=10)
         Number of augmented samples per original sample.
-    polynomial_degree : int, optional (default=2)
-        Maximum degree of polynomial features for symbolic regression.
     alpha : float, optional (default=0.1)
         L1 regularization strength for Lasso in symbolic regression.
     sigma : float, optional (default=0.1)
@@ -45,7 +43,7 @@ class OIKAN(ABC):
         Whether to evaluate neural network performance before full training.
     """
     def __init__(self, hidden_sizes=[64, 64], activation='relu', augmentation_factor=10, 
-                 polynomial_degree=2, alpha=0.1, sigma=0.1, epochs=100, lr=0.001, batch_size=32, 
+                 alpha=0.1, sigma=0.1, epochs=100, lr=0.001, batch_size=32, 
                  verbose=False, evaluate_nn=False, top_k=5):
         if not isinstance(hidden_sizes, list) or not all(isinstance(x, int) and x > 0 for x in hidden_sizes):
             raise InvalidParameterError("hidden_sizes must be a list of positive integers")
@@ -53,8 +51,6 @@ class OIKAN(ABC):
             raise InvalidParameterError(f"Unsupported activation function: {activation}")
         if not isinstance(augmentation_factor, int) or augmentation_factor < 1:
             raise InvalidParameterError("augmentation_factor must be a positive integer")
-        if not isinstance(polynomial_degree, int) or polynomial_degree < 1:
-            raise InvalidParameterError("polynomial_degree must be a positive integer")
         if not isinstance(top_k, int) or top_k < 1:
             raise InvalidParameterError("top_k must be a positive integer")
         if not 0 < lr < 1:
@@ -71,7 +67,6 @@ class OIKAN(ABC):
         self.hidden_sizes = hidden_sizes
         self.activation = activation
         self.augmentation_factor = augmentation_factor
-        self.polynomial_degree = polynomial_degree
         self.alpha = alpha
         self.sigma = sigma
         self.epochs = epochs
@@ -92,23 +87,53 @@ class OIKAN(ABC):
     def predict(self, X):
         pass
 
-    def get_formula(self):
-        """Returns the symbolic formula(s) as a string (regression) or list of strings (classification)."""
+    def get_formula(self, type='original'): 
+        """
+        Returns the symbolic formula(s) as a string (regression) or list of strings (classification). 
+        
+        Parameter:
+        --------
+        type : str, optional (default='original') other options: 'sympied', 'latex'
+            'original' returns the original formula with coefficients, 'sympied' returns sympy simplified formula.
+        """
+        if type.lower() not in ['original', 'sympied', 'latex']:
+            raise InvalidParameterError("Invalid type. Choose 'original', 'sympied', 'latex'.")
         if self.symbolic_model is None:
             raise ValueError("Model not fitted yet.")
         basis_functions = self.symbolic_model['basis_functions']
-        if 'coefficients' in self.symbolic_model:
-            coefficients = self.symbolic_model['coefficients']
-            formula = " + ".join([f"{coefficients[i]:.5f}*{basis_functions[i]}" 
-                                for i in range(len(coefficients)) if coefficients[i] != 0])
-            return formula if formula else "0"
+        if type.lower() == 'original':
+            if 'coefficients' in self.symbolic_model:
+                coefficients = self.symbolic_model['coefficients']
+                formula = " + ".join([f"{coefficients[i]:.6f}*{basis_functions[i]}" 
+                                    for i in range(len(coefficients)) if coefficients[i] != 0])
+                return formula if formula else "0"
+            else:
+                formulas = []
+                for c, coef in enumerate(self.symbolic_model['coefficients_list']):
+                    formula = " + ".join([f"{coef[i]:.6f}*{basis_functions[i]}" 
+                                        for i in range(len(coef)) if coef[i] != 0])
+                    formulas.append(f"Class {self.classes_[c]}: {formula if formula else '0'}")
+                return formulas
+        elif type.lower() == 'sympied':
+            if 'coefficients' in self.symbolic_model:
+                formula = sympify_formula(self.symbolic_model['basis_functions'], self.symbolic_model['coefficients'], self.symbolic_model['n_features'])
+                return formula
+            else: 
+                formulas = []
+                for c, coef in enumerate(self.symbolic_model['coefficients_list']):
+                    formula = sympify_formula(self.symbolic_model['basis_functions'], coef, self.symbolic_model['n_features'])
+                    formulas.append(f"Class {self.classes_[c]}: {formula}")
+                return formulas
         else:
-            formulas = []
-            for c, coef in enumerate(self.symbolic_model['coefficients_list']):
-                formula = " + ".join([f"{coef[i]:.5f}*{basis_functions[i]}" 
-                                    for i in range(len(coef)) if coef[i] != 0])
-                formulas.append(f"Class {self.classes_[c]}: {formula if formula else '0'}")
-            return formulas
+            if 'coefficients' in self.symbolic_model:
+                formula = get_latex_formula(self.symbolic_model['basis_functions'], self.symbolic_model['coefficients'], self.symbolic_model['n_features'])
+                return formula
+            else: 
+                formulas = []
+                for c, coef in enumerate(self.symbolic_model['coefficients_list']):
+                    formula = get_latex_formula(self.symbolic_model['basis_functions'], coef, self.symbolic_model['n_features'])
+                    formulas.append(f"Class {self.classes_[c]}: {formula}")
+                return formulas
 
     def feature_importances(self):
         """
@@ -163,7 +188,6 @@ class OIKAN(ABC):
             # Convert numpy arrays and other non-serializable types to lists
             model_data = {
                 'n_features': self.symbolic_model['n_features'],
-                'degree': self.symbolic_model['degree'],
                 'basis_functions': self.symbolic_model['basis_functions']
             }
             
@@ -200,7 +224,6 @@ class OIKAN(ABC):
                 
             self.symbolic_model = {
                 'n_features': model_data['n_features'],
-                'degree': model_data['degree'],
                 'basis_functions': model_data['basis_functions']
             }
             
@@ -222,7 +245,6 @@ class OIKAN(ABC):
         
         input_size = X.shape[1]
         self.neural_net = TabularNet(input_size, self.hidden_sizes, output_size, self.activation)
-        optimizer = optim.Adam(self.neural_net.parameters(), lr=self.lr)
         
         # Train on the training set
         self._train_neural_net(X_train, y_train, output_size, loss_fn)
@@ -378,7 +400,6 @@ class OIKAN(ABC):
             selected_indices = np.where(np.abs(coef_refined) > 1e-6)[0]
             self.symbolic_model = {
                 'n_features': X.shape[1],
-                'degree': self.polynomial_degree, 
                 'basis_functions': [basis_functions_refined[i] for i in selected_indices],
                 'coefficients': coef_refined[selected_indices].tolist()
             }
@@ -398,7 +419,6 @@ class OIKAN(ABC):
                 coefficients_list.append(coef_selected)
             self.symbolic_model = {
                 'n_features': X.shape[1],
-                'degree': self.polynomial_degree,
                 'basis_functions': basis_functions,
                 'coefficients_list': coefficients_list
             }

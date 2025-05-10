@@ -7,6 +7,7 @@ setup(
         "torch",
         "numpy",
         "scikit-learn",
-        "tqdm"
+        "tqdm",
+        "sympy"
     ]
 )
