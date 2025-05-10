@@ -44,14 +44,15 @@ OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation
    - Automatic pruning of insignificant terms
    
    ```python
-   class OIKANRegressor:
-       def __init__(self, hidden_sizes=[64, 64], activation='relu',
+    class OIKAN:
+        def __init__(self, hidden_sizes=[64, 64], activation='relu',
                     polynomial_degree=2, alpha=0.1):
-           # Neural network for learning complex patterns
-           self.neural_net = TabularNet(input_size, hidden_sizes, activation)
-           # Symbolic regression for interpretable formulas
-           self.symbolic_model = None
-
+            # Neural network for learning complex patterns
+            self.neural_net = TabularNet(input_size, hidden_sizes, activation)
+            # Data augmentation for better coverage
+            self.augmented_data = self.augment_data(X, y, augmentation_factor=5)
+            # Symbolic regression for interpretable formulas
+            self.symbolic_regression = SymbolicRegression(alpha=alpha)
    ```
 
 3. **Basis Functions**: Core set of interpretable transformations:
