@@ -53,6 +53,9 @@ model.save("outputs/iris_model.json")
 print("Loaded Model:")
 loaded_model = OIKANClassifier()
 loaded_model.load("outputs/iris_model.json")
-formulas_loaded = loaded_model.get_formula()
-for i, formula in enumerate(formulas_loaded):
-    print(f"Class {i} Formula (loaded):", formula)
+formulas_loaded = loaded_model.get_formula(type='original')
+for formula in formulas_loaded:
+    print(formula)
+simplified_formulas = loaded_model.get_formula(type='sympied')
+for simplified_formula in simplified_formulas:
+    print(simplified_formula)

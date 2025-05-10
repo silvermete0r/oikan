@@ -83,9 +83,9 @@ def get_features_involved(basis_function):
         features.add(idx)
     return features
 
-def simplify_formula(basis_functions, coefficients, n_features, threshold=0.00005):
+def sympify_formula(basis_functions, coefficients, n_features, threshold=0.00005):
     """
-    Simplifies a symbolic formula using SymPy.
+    Sympifies a symbolic formula using SymPy.
     
     Parameters:
     -----------
@@ -101,7 +101,7 @@ def simplify_formula(basis_functions, coefficients, n_features, threshold=0.0000
     Returns:
     --------
     str
-        Simplified formula as a string, or '0' if empty.
+        Sympified formula as a string, or '0' if empty.
     """
     # Define symbolic variables
     x = sp.symbols(f'x0:{n_features}')
@@ -137,8 +137,8 @@ def simplify_formula(basis_functions, coefficients, n_features, threshold=0.0000
             term = coef * x[idx]
         expr += term
     
-    # Simplify the expression
-    simplified_expr = sp.simplify(expr)
+    # Sympify the expression
+    sympified_expr = sp.simplify(expr)
     
     # Convert to string with rounded coefficients
     def format_term(term):
@@ -152,22 +152,22 @@ def simplify_formula(basis_functions, coefficients, n_features, threshold=0.0000
                     factors.append(str(factor))
             if abs(coeff) < threshold:
                 return None
-            return f"{coeff:.3f}*{'*'.join(factors)}" if factors else f"{coeff:.3f}"
+            return f"{coeff:.5f}*{'*'.join(factors)}" if factors else f"{coeff:.5f}"
         elif term.is_Add:
             return None  # Handle in recursion
         elif term.is_Number:
-            return f"{float(term):.3f}" if abs(float(term)) >= threshold else None
+            return f"{float(term):.5f}" if abs(float(term)) >= threshold else None
         else:
-            return f"{1.0:.3f}*{term}" if abs(1.0) >= threshold else None
+            return f"{1.0:.5f}*{term}" if abs(1.0) >= threshold else None
 
     terms = []
-    if simplified_expr.is_Add:
-        for term in simplified_expr.args:
+    if sympified_expr.is_Add:
+        for term in sympified_expr.args:
             formatted = format_term(term)
             if formatted:
                 terms.append(formatted)
     else:
-        formatted = format_term(simplified_expr)
+        formatted = format_term(sympified_expr)
         if formatted:
             terms.append(formatted)
     
@@ -177,4 +177,4 @@ def simplify_formula(basis_functions, coefficients, n_features, threshold=0.0000
 if __name__ == "__main__":
     with open('outputs/california_housing_model.json', 'r') as f:
         model = json.load(f)
-    print('Simplified formula:', simplify_formula(model['basis_functions'], model['coefficients'], model['n_features']))
+    print('Simplified formula:', sympify_formula(model['basis_functions'], model['coefficients'], model['n_features']))
