@@ -121,7 +121,7 @@ mse = mean_squared_error(y_test, y_pred)
 print("Mean Squared Error:", mse)
 
 # Get symbolic formula
-formula = model.get_formula()
+formula = model.get_formula() # default: type='original' -> returns all formula without pruning | other options: 'sympied' -> simplified formula using sympy; 'latex' -> LaTeX format
 print("Symbolic Formula:", formula)
 
 # Get feature importances
@@ -170,7 +170,7 @@ accuracy = model.score(X_test, y_test)
 print("Accuracy:", accuracy)
 
 # Get symbolic formulas for each class
-formulas = model.get_formula()
+formulas = model.get_formula() # default: type='original' -> returns all formula without pruning | other options: 'sympied' -> simplified formula using sympy; 'latex' -> LaTeX format
 for i, formula in enumerate(formulas):
     print(f"Class {i} Formula:", formula)
    
