@@ -15,7 +15,11 @@ OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arno
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/silvermete0r/OIKAN.svg)](https://github.com/silvermete0r/oikan/issues)
 [![Docs](https://img.shields.io/badge/docs-passing-brightgreen)](https://silvermete0r.github.io/oikan/)
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/silvermete0r/oikan)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/silvermete0r/oikan/blob/main/examples/oikan-v0-0-3-get-started-template-notebook.ipynb)
+[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://www.kaggle.com/code/armanzhalgasbayev/oikan-v0-0-3-get-started-template-notebook)
+
 
 > **Important Disclaimer**: OIKAN is an experimental research project. It is not intended for production use or real-world applications. This framework is designed for research purposes, experimentation, and academic exploration of neuro-symbolic machine learning concepts.
 
