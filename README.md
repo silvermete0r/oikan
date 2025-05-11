@@ -92,9 +92,20 @@ cd OIKAN
 pip install -e .  # Install in development mode
 ```
 
+#### System Requirements
+
+| Requirement       | Details                              |
+|-------------------|--------------------------------------|
+| Python            | Version 3.7 or higher               |
+| Operating System  | Platform independent (Windows/macOS/Linux) |
+| Memory            | Recommended minimum 4GB RAM         |
+| Disk Space        | ~100MB for installation (including dependencies) |
+| GPU               | Optional (for faster training)      |
+| Dependencies      | torch, numpy, scikit-learn, sympy, tqdm   |
+
 ### Regression Example
 ```python
-from oikan.model import OIKANRegressor
+from oikan import OIKANRegressor
 from sklearn.metrics import mean_squared_error
 
 # Initialize model
@@ -143,7 +154,7 @@ loaded_model.load("outputs/model.json")
 
 ### Classification Example
 ```python
-from oikan.model import OIKANClassifier
+from oikan import OIKANClassifier
 from sklearn.metrics import accuracy_score
 
 # Initialize model
