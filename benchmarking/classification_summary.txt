@@ -1,0 +1,4 @@
+accuracy:
+  AVG: 0.8847
+  BEST: 1.0000
+  WORST: 0.5556
