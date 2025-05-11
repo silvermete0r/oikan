@@ -93,11 +93,11 @@ class OIKAN(ABC):
         
         Parameter:
         --------
-        type : str, optional (default='original') other options: 'sympied', 'latex'
-            'original' returns the original formula with coefficients, 'sympied' returns sympy simplified formula.
+        type : str, optional (default='original') other options: 'sympy', 'latex'
+            'original' returns the original formula with coefficients, 'sympy' returns sympy simplified formula.
         """
-        if type.lower() not in ['original', 'sympied', 'latex']:
-            raise InvalidParameterError("Invalid type. Choose 'original', 'sympied', 'latex'.")
+        if type.lower() not in ['original', 'sympy', 'latex']:
+            raise InvalidParameterError("Invalid type. Choose 'original', 'sympy', 'latex'.")
         if self.symbolic_model is None:
             raise ValueError("Model not fitted yet.")
         basis_functions = self.symbolic_model['basis_functions']
@@ -114,7 +114,7 @@ class OIKAN(ABC):
                                         for i in range(len(coef)) if coef[i] != 0])
                     formulas.append(f"Class {self.classes_[c]}: {formula if formula else '0'}")
                 return formulas
-        elif type.lower() == 'sympied':
+        elif type.lower() == 'sympy':
             if 'coefficients' in self.symbolic_model:
                 formula = sympify_formula(self.symbolic_model['basis_functions'], self.symbolic_model['coefficients'], self.symbolic_model['n_features'])
                 return formula
