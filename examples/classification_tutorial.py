@@ -59,7 +59,7 @@ for formula in formulas_loaded:
     print(formula)
 
 print("Simplified Formulas:")
-simplified_formulas = loaded_model.get_formula(type='sympied')
+simplified_formulas = loaded_model.get_formula(type='sympy')
 for simplified_formula in simplified_formulas:
     print(simplified_formula)
 
