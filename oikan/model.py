@@ -448,6 +448,8 @@ class OIKANRegressor(OIKAN):
         if self.verbose:
             print(f"Augmented data: features shape: {X_aug.shape} | target shape: {y_aug.shape}")
         self._perform_symbolic_regression(X_aug, y_aug)
+        if self.verbose:
+            print("OIKANRegressor model training completed successfully!")
 
     def predict(self, X):
         """
@@ -500,6 +502,8 @@ class OIKANClassifier(OIKAN):
         if self.verbose:
             print(f"Augmented data: features shape: {X_aug.shape} | target shape: {logits_aug.shape}")
         self._perform_symbolic_regression(X_aug, logits_aug)
+        if self.verbose:
+            print("OIKANClassifier model training completed successfully!")
 
     def predict(self, X):
         """

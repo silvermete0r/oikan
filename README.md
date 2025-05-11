@@ -15,7 +15,11 @@ OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arno
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/silvermete0r/OIKAN.svg)](https://github.com/silvermete0r/oikan/issues)
 [![Docs](https://img.shields.io/badge/docs-passing-brightgreen)](https://silvermete0r.github.io/oikan/)
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/silvermete0r/oikan)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/silvermete0r/oikan/blob/main/examples/oikan-v0-0-3-get-started-template-notebook.ipynb)
+[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://www.kaggle.com/code/armanzhalgasbayev/oikan-v0-0-3-get-started-template-notebook)
+
 
 > **Important Disclaimer**: OIKAN is an experimental research project. It is not intended for production use or real-world applications. This framework is designed for research purposes, experimentation, and academic exploration of neuro-symbolic machine learning concepts.
 
@@ -92,9 +96,20 @@ cd OIKAN
 pip install -e .  # Install in development mode
 ```
 
+#### System Requirements
+
+| Requirement       | Details                              |
+|-------------------|--------------------------------------|
+| Python            | Version 3.7 or higher               |
+| Operating System  | Platform independent (Windows/macOS/Linux) |
+| Memory            | Recommended minimum 4GB RAM         |
+| Disk Space        | ~100MB for installation (including dependencies) |
+| GPU               | Optional (for faster training)      |
+| Dependencies      | torch, numpy, scikit-learn, sympy, tqdm   |
+
 ### Regression Example
 ```python
-from oikan.model import OIKANRegressor
+from oikan import OIKANRegressor
 from sklearn.metrics import mean_squared_error
 
 # Initialize model
@@ -143,7 +158,7 @@ loaded_model.load("outputs/model.json")
 
 ### Classification Example
 ```python
-from oikan.model import OIKANClassifier
+from oikan import OIKANClassifier
 from sklearn.metrics import accuracy_score
 
 # Initialize model
