@@ -207,6 +207,12 @@ loaded_model.load("outputs/model.json")
 
 ### Architecture Diagram
 
+#### High-Level Architecture:
+
+![OIKAN v0.0.3 High-Level Architecture](https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan_v0.0.3_high_level_architecture.png)
+
+#### UML Diagram:
+
 ![OIKAN v0.0.3(2) Architecture](https://raw.githubusercontent.com/silvermete0r/oikan/main/docs/media/oikan-v0.0.3(2)-architecture-oop.png)
 
 ## OIKAN Symbolic Model Compilers
