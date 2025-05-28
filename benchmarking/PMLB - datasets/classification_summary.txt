@@ -1,4 +1,29 @@
-accuracy:
-  AVG: 0.8847
+accuracy_oikan:
+  AVG: 0.7641
   BEST: 1.0000
-  WORST: 0.5556
+  WORST: 0.1812
+
+precision_oikan:
+  AVG: 0.7516
+  BEST: 1.0000
+  WORST: 0.0816
+
+f1_oikan:
+  AVG: 0.7373
+  BEST: 1.0000
+  WORST: 0.1270
+
+accuracy_elasticnet:
+  AVG: 0.7767
+  BEST: 1.0000
+  WORST: 0.2125
+
+precision_elasticnet:
+  AVG: 0.7618
+  BEST: 1.0000
+  WORST: 0.0816
+
+f1_elasticnet:
+  AVG: 0.7535
+  BEST: 1.0000
+  WORST: 0.1270
