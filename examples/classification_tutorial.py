@@ -14,7 +14,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 model = OIKANClassifier(
     hidden_sizes=[32, 32], 
     activation='relu',
-    augmentation_factor=10,
+    augmentation_factor=1,
     alpha=0.1,
     sigma=0.1, 
     epochs=100, 
@@ -22,7 +22,8 @@ model = OIKANClassifier(
     batch_size=32, 
     top_k=10,
     evaluate_nn=True,
-    verbose=True
+    verbose=True,
+    random_state=42
 )
 
 # Fit the model

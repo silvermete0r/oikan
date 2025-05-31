@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 class TabularNet(nn.Module):
     """

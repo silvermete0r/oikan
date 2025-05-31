@@ -41,10 +41,12 @@ class OIKAN(ABC):
         Whether to display training progress.
     evaluate_nn : bool, optional (default=False)
         Whether to evaluate neural network performance before full training.
+    random_state: int, optional (default=None)
+        Random seed for reproducibility.
     """
     def __init__(self, hidden_sizes=[64, 64], activation='relu', augmentation_factor=10, 
                  alpha=0.1, sigma=0.1, epochs=100, lr=0.001, batch_size=32, 
-                 verbose=False, evaluate_nn=False, top_k=5):
+                 verbose=False, evaluate_nn=False, top_k=5, random_state=None):
         if not isinstance(hidden_sizes, list) or not all(isinstance(x, int) and x > 0 for x in hidden_sizes):
             raise InvalidParameterError("hidden_sizes must be a list of positive integers")
         if activation not in ['relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu']:
@@ -78,6 +80,11 @@ class OIKAN(ABC):
         self.neural_net = None
         self.symbolic_model = None
         self.evaluation_done = False
+        self.random_state = random_state
+        
+        if self.random_state is not None:
+            torch.manual_seed(self.random_state)
+            np.random.seed(self.random_state)
 
     @abstractmethod
     def fit(self, X, y):

@@ -19,7 +19,7 @@ OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arno
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/silvermete0r/oikan)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/silvermete0r/oikan/blob/main/examples/oikan-v0-0-3-get-started-template-notebook.ipynb)
 [![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://www.kaggle.com/code/armanzhalgasbayev/oikan-v0-0-3-get-started-template-notebook)
-
+[![Static Badge](https://img.shields.io/badge/oikan-violet?style=flat&label=awesome)](https://github.com/silvermete0r/awesome-oikan)
 
 > **Important Disclaimer**: OIKAN is an experimental research project. It is not intended for production use or real-world applications. This framework is designed for research purposes, experimentation, and academic exploration of neuro-symbolic machine learning concepts.
 
@@ -124,7 +124,8 @@ model = OIKANRegressor(
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
-    evaluate_nn=True # Validate neural network performance before full process
+    evaluate_nn=True, # Validate neural network performance before full process
+    random_state=42 # Random seed for reproducibility
 )
 
 # Fit the model
@@ -173,7 +174,8 @@ model = OIKANClassifier(
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
-    evaluate_nn=True # Validate neural network performance before full process
+    evaluate_nn=True, # Validate neural network performance before full process
+    random_state=42 # Random seed for reproducibility
 )
 
 # Fit the model
