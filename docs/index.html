@@ -162,7 +162,8 @@ model = OIKANRegressor(
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
-    evaluate_nn=True # Validate neural network performance before full process
+    evaluate_nn=True, # Validate neural network performance before full process
+    random_state=42 # Random seed for reproducibility
 )
 
 # Fit the model
@@ -208,7 +209,8 @@ model = OIKANClassifier(
     lr=0.001, # Learning rate
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
-    evaluate_nn=True # Validate neural network performance before full process
+    evaluate_nn=True, # Validate neural network performance before full process
+    random_state=42 # Random seed for reproducibility
 )
 
 # Fit the model
