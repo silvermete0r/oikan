@@ -319,11 +319,15 @@ class OIKAN(ABC):
 
     def _generate_augmented_data(self, X):
         """Generates augmented data by adding Gaussian noise."""
+        if self.augmentation_factor == 1:
+            return np.array([]).reshape(0, X.shape[1])
+            
         X_aug = []
-        for _ in range(self.augmentation_factor):
+        for _ in range(self.augmentation_factor - 1):
             noise = np.random.normal(0, self.sigma, X.shape)
             X_perturbed = X + noise
             X_aug.append(X_perturbed)
+
         return np.vstack(X_aug)
 
     def _perform_symbolic_regression(self, X, y):
@@ -445,16 +449,31 @@ class OIKANRegressor(OIKAN):
         """
         X = np.asarray(X)
         y = np.asarray(y).reshape(-1, 1)
-        self._train_neural_net(X, y, output_size=1, loss_fn=nn.MSELoss())
-        if self.verbose:
-            print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
-        X_aug = self._generate_augmented_data(X)
-        self.neural_net.eval()
-        with torch.no_grad():
-            y_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
-        if self.verbose:
-            print(f"Augmented data: features shape: {X_aug.shape} | target shape: {y_aug.shape}")
-        self._perform_symbolic_regression(X_aug, y_aug)
+        
+        if self.augmentation_factor > 1:
+            self._train_neural_net(X, y, output_size=1, loss_fn=nn.MSELoss())
+            
+            if self.verbose:
+                print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
+            
+            X_aug = self._generate_augmented_data(X)
+            
+            self.neural_net.eval()
+            with torch.no_grad():
+                y_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
+            
+            if self.verbose:
+                print(f"Augmented data: features shape: {X_aug.shape} | target shape: {y_aug.shape}")
+            
+            X_combined = np.vstack([X, X_aug])
+            y_combined = np.vstack([y, y_aug])
+        else:
+            if self.verbose:
+                print("Skipping neural network training (augmentation_factor=1)")
+            X_combined = X
+            y_combined = y
+            
+        self._perform_symbolic_regression(X_combined, y_combined)
         if self.verbose:
             print("OIKANRegressor model training completed successfully!")
 
@@ -499,16 +518,31 @@ class OIKANClassifier(OIKAN):
         self.classes_ = le.classes_
         n_classes = len(self.classes_)
         y_onehot = nn.functional.one_hot(torch.tensor(y_encoded), num_classes=n_classes).float()
-        self._train_neural_net(X, y_onehot, output_size=n_classes, loss_fn=nn.CrossEntropyLoss())
-        if self.verbose:
-            print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
-        X_aug = self._generate_augmented_data(X)
-        self.neural_net.eval()
-        with torch.no_grad():
-            logits_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
-        if self.verbose:
-            print(f"Augmented data: features shape: {X_aug.shape} | target shape: {logits_aug.shape}")
-        self._perform_symbolic_regression(X_aug, logits_aug)
+        
+        if self.augmentation_factor > 1:
+            self._train_neural_net(X, y_onehot, output_size=n_classes, loss_fn=nn.CrossEntropyLoss())
+            
+            if self.verbose:
+                print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
+            
+            X_aug = self._generate_augmented_data(X)
+            
+            self.neural_net.eval()
+            with torch.no_grad():
+                logits_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
+            
+            if self.verbose:
+                print(f"Augmented data: features shape: {X_aug.shape} | target shape: {logits_aug.shape}")
+            
+            X_combined = np.vstack([X, X_aug])
+            y_combined = np.vstack([y_onehot.numpy(), logits_aug])
+        else:
+            if self.verbose:
+                print("Skipping neural network training (augmentation_factor=1)")
+            X_combined = X
+            y_combined = y_onehot.numpy()
+            
+        self._perform_symbolic_regression(X_combined, y_combined)
         if self.verbose:
             print("OIKANClassifier model training completed successfully!")
 
