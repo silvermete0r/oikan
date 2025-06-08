@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, accuracy_score
 from .exceptions import *
 import sys
+from tqdm import tqdm
 
 class OIKAN(ABC):
     """
@@ -353,14 +354,23 @@ class OIKAN(ABC):
         if np.any(np.isinf(X)) or np.any(np.isinf(y)):
             raise NumericalInstabilityError("Input data contains infinite values")
 
-        # Stage 1: Coarse Model
+        if self.verbose:
+            print("\nStage 1: Coarse Model Fitting")
+            
         coarse_degree = 2  # Fixed low degree for coarse model
         poly_coarse = PolynomialFeatures(degree=coarse_degree, include_bias=True)
+        
+        if self.verbose:
+            print("Generating polynomial features...")
         X_poly_coarse = poly_coarse.fit_transform(X)
+        
+        if self.verbose:
+            print("Fitting coarse elastic net model...")
         model_coarse = ElasticNet(alpha=self.alpha, fit_intercept=False)
         model_coarse.fit(X_poly_coarse, y)
 
-        # Compute feature importances for original features
+        if self.verbose:
+            print("Computing feature importances...")
         basis_functions_coarse = poly_coarse.get_feature_names_out()
         if len(y.shape) == 1 or y.shape[1] == 1:
             coef_coarse = model_coarse.coef_.flatten()
@@ -368,7 +378,7 @@ class OIKAN(ABC):
             coef_coarse = np.sum(np.abs(model_coarse.coef_), axis=0)
 
         importances = np.zeros(X.shape[1])
-        for i, func in enumerate(basis_functions_coarse):
+        for i, func in enumerate(tqdm(basis_functions_coarse, disable=not self.verbose, desc="Analyzing features")):
             features_involved = get_features_involved(func)
             for idx in features_involved:
                 importances[idx] += np.abs(coef_coarse[i])
@@ -379,11 +389,13 @@ class OIKAN(ABC):
         # Select top K features
         top_k_indices = np.argsort(importances)[::-1][:self.top_k]
 
-        # Stage 2: Refined Model
-        # ~ generate additional non-linear features for top K features
+        if self.verbose:
+            print(f"\nStage 2: Refined Model with top {self.top_k} features")
+            print("Generating additional non-linear features...")
+
         additional_features = []
         additional_names = []
-        for i in top_k_indices:
+        for i in tqdm(top_k_indices, disable=not self.verbose, desc="Generating features"):
             # Higher-degree polynomial
             additional_features.append(X[:, i]**3)
             additional_names.append(f'x{i}^3')
@@ -395,14 +407,17 @@ class OIKAN(ABC):
             additional_features.append(np.sin(X[:, i]))
             additional_names.append(f'sin_x{i}')
         
-        # Combine features
+        if self.verbose:
+            print("Combining features and fitting final model...")
         X_additional = np.column_stack(additional_features)
         X_refined = np.hstack([X_poly_coarse, X_additional])
         basis_functions_refined = list(basis_functions_coarse) + additional_names
 
-        # Fit refined model
         model_refined = ElasticNet(alpha=self.alpha, fit_intercept=False)
         model_refined.fit(X_refined, y)
+
+        if self.verbose:
+            print("Building final symbolic model...")
 
         # Store symbolic model
         if len(y.shape) == 1 or y.shape[1] == 1:
@@ -418,7 +433,7 @@ class OIKAN(ABC):
             # Classification
             coefficients_list = []
             selected_indices = set()
-            for c in range(y.shape[1]):
+            for c in tqdm(range(y.shape[1]), disable=not self.verbose, desc="Processing classes"):
                 coef = model_refined.coef_[c]
                 indices = np.where(np.abs(coef) > 1e-6)[0]
                 selected_indices.update(indices)
@@ -454,7 +469,7 @@ class OIKANRegressor(OIKAN):
             self._train_neural_net(X, y, output_size=1, loss_fn=nn.MSELoss())
             
             if self.verbose:
-                print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
+                print(f"Original data: features shape: {X.shape} | target shape: {y.shape} | size: {X.nbytes / (1024 * 1024):.2f} MB")
             
             X_aug = self._generate_augmented_data(X)
             
@@ -463,13 +478,14 @@ class OIKANRegressor(OIKAN):
                 y_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
             
             if self.verbose:
-                print(f"Augmented data: features shape: {X_aug.shape} | target shape: {y_aug.shape}")
+                print(f"Augmented data: features shape: {X_aug.shape} | target shape: {y_aug.shape} | size: {X_aug.nbytes / (1024 * 1024):.2f} MB")
             
             X_combined = np.vstack([X, X_aug])
             y_combined = np.vstack([y, y_aug])
         else:
             if self.verbose:
                 print("Skipping neural network training (augmentation_factor=1)")
+                print(f"Data: features shape: {X.shape} | target shape: {y.shape} | size: {X.nbytes / (1024 * 1024):.2f} MB")
             X_combined = X
             y_combined = y
             
@@ -523,7 +539,7 @@ class OIKANClassifier(OIKAN):
             self._train_neural_net(X, y_onehot, output_size=n_classes, loss_fn=nn.CrossEntropyLoss())
             
             if self.verbose:
-                print(f"Original data: features shape: {X.shape} | target shape: {y.shape}")
+                print(f"Original data: features shape: {X.shape} | target shape: {y.shape} | size: {X.nbytes / (1024 * 1024):.2f} MB")
             
             X_aug = self._generate_augmented_data(X)
             
@@ -532,13 +548,14 @@ class OIKANClassifier(OIKAN):
                 logits_aug = self.neural_net(torch.tensor(X_aug, dtype=torch.float32)).detach().numpy()
             
             if self.verbose:
-                print(f"Augmented data: features shape: {X_aug.shape} | target shape: {logits_aug.shape}")
+                print(f"Augmented data: features shape: {X_aug.shape} | target shape: {logits_aug.shape} | size: {X_aug.nbytes / (1024 * 1024):.2f} MB")
             
             X_combined = np.vstack([X, X_aug])
             y_combined = np.vstack([y_onehot.numpy(), logits_aug])
         else:
             if self.verbose:
                 print("Skipping neural network training (augmentation_factor=1)")
+                print(f"Data: features shape: {X.shape} | target shape: {y.shape} | size: {X.nbytes / (1024 * 1024):.2f} MB")
             X_combined = X
             y_combined = y_onehot.numpy()
             
