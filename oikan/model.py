@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import ElasticNet
 from abc import ABC, abstractmethod
 import json
+from .elasticnet import ElasticNet
 from .neural import TabularNet
 from .utils import evaluate_basis_functions, get_features_involved, sympify_formula, get_latex_formula
 from sklearn.model_selection import train_test_split
@@ -26,9 +26,12 @@ class OIKAN(ABC):
         Activation function for the neural network ('relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu').
     augmentation_factor : int, optional (default=10)
         Number of augmented samples per original sample.
-    alpha : float, optional (default=0.1)
-        L1 regularization strength for Lasso in symbolic regression.
-    sigma : float, optional (default=0.1)
+    alpha : float, optional (default=1.0)
+        ElasticNet regularization strength.
+    l1_ratio: float, optional (default=0.5)
+        ElasticNet mixing parameter (0 <= l1_ratio <= 1).
+        0 is equivalent to Ridge regression, 1 is equivalent to Lasso.
+    sigma : float, optional (default=5.0)
         Standard deviation of Gaussian noise for data augmentation.
     top_k : int, optional (default=5)
         Number of top features to select in hierarchical symbolic regression.
@@ -46,7 +49,7 @@ class OIKAN(ABC):
         Random seed for reproducibility.
     """
     def __init__(self, hidden_sizes=[64, 64], activation='relu', augmentation_factor=10, 
-                 alpha=0.1, sigma=0.1, epochs=100, lr=0.001, batch_size=32, 
+                 alpha=1.0, l1_ratio=0.5, sigma=5.0, epochs=100, lr=0.001, batch_size=32, 
                  verbose=False, evaluate_nn=False, top_k=5, random_state=None):
         if not isinstance(hidden_sizes, list) or not all(isinstance(x, int) and x > 0 for x in hidden_sizes):
             raise InvalidParameterError("hidden_sizes must be a list of positive integers")
@@ -64,6 +67,8 @@ class OIKAN(ABC):
             raise InvalidParameterError("epochs must be a positive integer")
         if not 0 <= alpha <= 1:
             raise InvalidParameterError("alpha must be between 0 and 1")
+        if not 0 <= l1_ratio <= 1:
+            raise InvalidParameterError("l1_ratio must be between 0 and 1")
         if sigma <= 0:
             raise InvalidParameterError("sigma must be positive")
         
@@ -71,6 +76,7 @@ class OIKAN(ABC):
         self.activation = activation
         self.augmentation_factor = augmentation_factor
         self.alpha = alpha
+        self.l1_ratio = l1_ratio
         self.sigma = sigma
         self.epochs = epochs
         self.lr = lr
@@ -366,7 +372,7 @@ class OIKAN(ABC):
         
         if self.verbose:
             print("Fitting coarse elastic net model...")
-        model_coarse = ElasticNet(alpha=self.alpha, fit_intercept=False)
+        model_coarse = ElasticNet(alpha=self.alpha, l1_ratio=self.l1_ratio, fit_intercept=False, random_state=self.random_state)
         model_coarse.fit(X_poly_coarse, y)
 
         if self.verbose:
@@ -413,7 +419,7 @@ class OIKAN(ABC):
         X_refined = np.hstack([X_poly_coarse, X_additional])
         basis_functions_refined = list(basis_functions_coarse) + additional_names
 
-        model_refined = ElasticNet(alpha=self.alpha, fit_intercept=False)
+        model_refined = ElasticNet(alpha=self.alpha, l1_ratio=self.l1_ratio, fit_intercept=False, random_state=self.random_state)
         model_refined.fit(X_refined, y)
 
         if self.verbose:

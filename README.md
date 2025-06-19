@@ -30,19 +30,9 @@ OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arno
 - 🔬 **Research-Focused**: Designed for academic exploration and experimentation
 - 📈 **Multi-Task**: Supports both regression and classification problems
 
-## Scientific Foundation
+## Key Aspects
 
-OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation Theorem through a hybrid neural architecture:
-
-1. **Theoretical Foundation**: The Kolmogorov-Arnold theorem states that any continuous n-dimensional function can be decomposed into a combination of single-variable functions:
-
-   ```
-   f(x₁,...,xₙ) = ∑(j=0 to 2n){ φⱼ( ∑(i=1 to n) ψᵢⱼ(xᵢ) ) }
-   ```
-
-   where φⱼ and ψᵢⱼ are continuous univariate functions.
-
-2. **Neural Implementation**: OIKAN uses a specialized architecture combining:
+1. **Neural Implementation**: OIKAN uses a specialized architecture combining:
    - Feature transformation layers with interpretable basis functions
    - Symbolic regression for formula extraction (ElasticNet-based)
    - Automatic pruning of insignificant terms
@@ -59,7 +49,7 @@ OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation
             self.symbolic_regression = SymbolicRegression(alpha=alpha)
    ```
 
-3. **Basis Functions**: Core set of interpretable transformations:
+2. **Basis Functions**: Core set of interpretable transformations:
    ```python
    SYMBOLIC_FUNCTIONS = {
        'linear': 'x',           # Direct relationships
@@ -73,10 +63,10 @@ OIKAN implements a modern interpretation of the Kolmogorov-Arnold Representation
    }
    ```
 
-4. **Formula Extraction Process**:
+3. **Formula Extraction Process**:
    - Train neural network on raw data
    - Generate augmented samples for better coverage
-   - Perform L1-regularized symbolic regression (alpha)
+   - Perform ElasticNet-regularization
    - Prune terms with coefficients below threshold
    - Export human-readable mathematical expressions
 
@@ -108,6 +98,9 @@ pip install -e .  # Install in development mode
 | Dependencies      | torch, numpy, scikit-learn, sympy, tqdm   |
 
 ### Regression Example
+
+> **Suggestion:** Please ensure that the data is normalized using standard scaling (or another suitable normalization method), as Elastic Net assumes that the model intercept has already been accounted for.
+
 ```python
 from oikan import OIKANRegressor
 from sklearn.metrics import mean_squared_error
@@ -117,8 +110,9 @@ model = OIKANRegressor(
     hidden_sizes=[32, 32], # Hidden layer sizes
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
     augmentation_factor=5, # Augmentation factor for data generation
-    alpha=0.1, # L1 regularization strength (Symbolic regression)
-    sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
+    l1_rate=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
+    sigma=5, # Standard deviation of Gaussian noise for data augmentation
     top_k=5, # Number of top features to select (Symbolic regression)
     epochs=100, # Number of training epochs
     lr=0.001, # Learning rate
@@ -158,6 +152,9 @@ loaded_model.load("outputs/model.json")
 
 
 ### Classification Example
+
+> **Suggestion:** Please ensure that the data is normalized using standard scaling (or another suitable normalization method), as Elastic Net assumes that the model intercept has already been accounted for.
+
 ```python
 from oikan import OIKANClassifier
 from sklearn.metrics import accuracy_score
@@ -167,8 +164,9 @@ model = OIKANClassifier(
     hidden_sizes=[32, 32], # Hidden layer sizes
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
     augmentation_factor=10, # Augmentation factor for data generation
-    alpha=0.1, # L1 regularization strength (Symbolic regression)
-    sigma=0.1, # Standard deviation of Gaussian noise for data augmentation
+    alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
+    l1_rate=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
+    sigma=5, # Standard deviation of Gaussian noise for data augmentation
     top_k=5, # Number of top features to select (Symbolic regression)
     epochs=100, # # Number of training epochs
     lr=0.001, # Learning rate

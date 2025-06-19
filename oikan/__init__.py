@@ -9,6 +9,8 @@ Docs: https://silvermete0r.github.io/oikan/
 '''
 
 from .model import OIKAN, OIKANClassifier, OIKANRegressor
+from .neural import TabularNet
+from .elasticnet import ElasticNet
 
-__all__ = ['OIKAN', 'OIKANClassifier', 'OIKANRegressor']
+__all__ = ['OIKAN', 'OIKANClassifier', 'OIKANRegressor', 'TabularNet', 'ElasticNet']
 __version__ = '0.0.3'
