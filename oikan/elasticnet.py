@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 class ElasticNet(nn.Module):
-    def __init__(self, alpha=1.0, l1_ratio=0.5, fit_intercept=False, max_iter=1000, tol=1e-4, random_state=None):
+    def __init__(self, alpha=1.0, l1_ratio=0.5, fit_intercept=False, max_iter=5000, tol=1e-4, random_state=None):
         super().__init__()
         self.alpha = alpha
         self.l1_ratio = l1_ratio

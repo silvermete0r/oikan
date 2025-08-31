@@ -301,7 +301,7 @@ class OIKAN(ABC):
             self.neural_net = TabularNet(input_size, self.hidden_sizes, output_size, self.activation)
         optimizer = optim.Adam(self.neural_net.parameters(), lr=self.lr)
         dataset = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32), 
-                                               torch.tensor(y, dtype=torch.float32))
+                                         y.clone().detach())
         loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         self.neural_net.train()
 

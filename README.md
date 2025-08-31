@@ -111,7 +111,7 @@ model = OIKANRegressor(
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
     augmentation_factor=5, # Augmentation factor for data generation
     alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
-    l1_rate=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
+    l1_ratio=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
     sigma=5, # Standard deviation of Gaussian noise for data augmentation
     top_k=5, # Number of top features to select (Symbolic regression)
     epochs=100, # Number of training epochs
@@ -165,7 +165,7 @@ model = OIKANClassifier(
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
     augmentation_factor=10, # Augmentation factor for data generation
     alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
-    l1_rate=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
+    l1_ratio=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
     sigma=5, # Standard deviation of Gaussian noise for data augmentation
     top_k=5, # Number of top features to select (Symbolic regression)
     epochs=100, # # Number of training epochs
