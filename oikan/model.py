@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.preprocessing import PolynomialFeatures
 from abc import ABC, abstractmethod
 import json
 from .elasticnet import ElasticNet
@@ -88,6 +87,7 @@ class OIKAN(ABC):
         self.symbolic_model = None
         self.evaluation_done = False
         self.random_state = random_state
+        self.__version__ = '0.0.3'
         
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
@@ -300,8 +300,10 @@ class OIKAN(ABC):
         if self.neural_net is None:
             self.neural_net = TabularNet(input_size, self.hidden_sizes, output_size, self.activation)
         optimizer = optim.Adam(self.neural_net.parameters(), lr=self.lr)
-        dataset = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32), 
-                                         y.clone().detach())
+        dataset = torch.utils.data.TensorDataset(
+            torch.tensor(X, dtype=torch.float32), 
+            torch.tensor(y, dtype=torch.float32) 
+        )
         loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         self.neural_net.train()
 
@@ -362,14 +364,32 @@ class OIKAN(ABC):
 
         if self.verbose:
             print("\nStage 1: Coarse Model Fitting")
-            
-        coarse_degree = 2  # Fixed low degree for coarse model
-        poly_coarse = PolynomialFeatures(degree=coarse_degree, include_bias=True)
         
+        # Generate polynomial features
         if self.verbose:
             print("Generating polynomial features...")
-        X_poly_coarse = poly_coarse.fit_transform(X)
-        
+        n_samples, n_features = X.shape
+
+        bias = np.ones((n_samples, 1)) 
+        features = X 
+        powers_of_2 = X ** 2  
+
+        X_poly_coarse = np.hstack([bias, features, powers_of_2])
+        basis_functions_coarse = ['1'] + [f'x{i}' for i in range(n_features)] + [f'x{i}^2' for i in range(n_features)]
+
+        # Generate random interaction features (O(N^2) -> O(N)) 
+        if self.verbose:
+            print("Generating random interaction features...")
+        rng = np.random.default_rng(self.random_state)
+        random_pairs = rng.choice(n_features, size=(n_features // 2, 2), replace=False)
+        interaction_features = np.array([X[:, i] * X[:, j] for i, j in random_pairs]).T
+        interaction_feature_names = [f"x{i} x{j}" for i, j in random_pairs]
+
+        # Combine all features
+        X_poly_coarse = np.hstack([X_poly_coarse, interaction_features])
+        basis_functions_coarse.extend(interaction_feature_names)
+
+        # Fit coarse elastic net model
         if self.verbose:
             print("Fitting coarse elastic net model...")
         model_coarse = ElasticNet(alpha=self.alpha, l1_ratio=self.l1_ratio, fit_intercept=False, random_state=self.random_state)
@@ -377,7 +397,7 @@ class OIKAN(ABC):
 
         if self.verbose:
             print("Computing feature importances...")
-        basis_functions_coarse = poly_coarse.get_feature_names_out()
+            
         if len(y.shape) == 1 or y.shape[1] == 1:
             coef_coarse = model_coarse.coef_.flatten()
         else:
@@ -443,7 +463,7 @@ class OIKAN(ABC):
                 coef = model_refined.coef_[c]
                 indices = np.where(np.abs(coef) > 1e-6)[0]
                 selected_indices.update(indices)
-            selected_indices = list(selected_indices)
+            selected_indices = [i for i in selected_indices if i < len(basis_functions_refined)]
             basis_functions = [basis_functions_refined[i] for i in selected_indices]
             for c in range(y.shape[1]):
                 coef = model_refined.coef_[c]
@@ -454,6 +474,22 @@ class OIKAN(ABC):
                 'basis_functions': basis_functions,
                 'coefficients_list': coefficients_list
             }
+    
+    def _print_system_info(self):
+        """Prints system information (for debugging purposes)."""
+        import platform
+        import os
+        print("\n" + "="*30)
+        print("System Information:")
+        print(f"OIKAN version: {self.__version__}")
+        print(f"Python version: {platform.python_version()}")
+        print(f"NumPy version: {np.__version__}")
+        print(f"Torch version: {torch.__version__}")
+        print(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
+        print(f"Number of CPU cores: {os.cpu_count()}")
+        print(f"Memory Usage: {torch.cuda.memory_allocated() / (1024 ** 2) if torch.cuda.is_available() else 'N/A'} MB")
+        print(f"Architecture: {platform.machine()}")
+        print("="*30 + "\n")
 
 class OIKANRegressor(OIKAN):
     """OIKAN model for regression tasks."""
@@ -468,6 +504,9 @@ class OIKANRegressor(OIKAN):
         y : array-like of shape (n_samples,)
             Target values.
         """
+        if self.verbose:
+            self._print_system_info()
+
         X = np.asarray(X)
         y = np.asarray(y).reshape(-1, 1)
         
@@ -533,6 +572,9 @@ class OIKANClassifier(OIKAN):
         y : array-like of shape (n_samples,)
             Target labels.
         """
+        if self.verbose:
+            self._print_system_info()
+
         X = np.asarray(X)
         from sklearn.preprocessing import LabelEncoder
         le = LabelEncoder()

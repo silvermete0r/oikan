@@ -29,7 +29,7 @@ model = OIKANRegressor(
     lr=0.001, 
     batch_size=32, 
     top_k=10,
-    evaluate_nn=True,
+    evaluate_nn=False,
     verbose=True,
     random_state=42
 )
@@ -55,14 +55,14 @@ importances = model.feature_importances()
 print("Feature Importances:", importances)
 
 # Save the model (optional)
-model.save("outputs/california_housing_model.json")
+model.save("../outputs/california_housing_model.json")
 
 # Load the model (optional)
 print("Loaded Model:")
 loaded_model = OIKANRegressor()
-loaded_model.load("outputs/california_housing_model.json")
+loaded_model.load("../outputs/california_housing_model.json")
 formula_loaded = loaded_model.get_formula(type='original')
-print("> Symbolic Formula (loaded):", formula_loaded)
+print("Symbolic Formula (loaded):", formula_loaded)
 
 simplified_formula = loaded_model.get_formula(type='sympy')
 print("Symbolic Formula (simplified):", simplified_formula)

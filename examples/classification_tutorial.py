@@ -55,12 +55,12 @@ importances = model.feature_importances()
 print("Feature Importances:", importances)
 
 # Save the model (optional)
-model.save("outputs/iris_model.json")
+model.save("../outputs/iris_model.json")
 
 # Load the model (optional)
 print("Loaded Model:")
 loaded_model = OIKANClassifier()
-loaded_model.load("outputs/iris_model.json")
+loaded_model.load("../outputs/iris_model.json")
 formulas_loaded = loaded_model.get_formula(type='original')
 for formula in formulas_loaded:
     print(formula)

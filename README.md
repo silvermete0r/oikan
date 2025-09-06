@@ -46,7 +46,7 @@ OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arno
             # Data augmentation for better coverage
             self.augmented_data = self.augment_data(X, y, augmentation_factor=5)
             # Symbolic regression for interpretable formulas
-            self.symbolic_regression = SymbolicRegression(alpha=alpha)
+            self.symbolic_regression = SymbolicRegression(alpha=alpha, l1_ratio=0.5)
    ```
 
 2. **Basis Functions**: Core set of interpretable transformations:
@@ -99,7 +99,7 @@ pip install -e .  # Install in development mode
 
 ### Regression Example
 
-> **Suggestion:** Please ensure that the data is normalized using standard scaling (or another suitable normalization method), as Elastic Net assumes that the model intercept has already been accounted for.
+> **Suggestion:** Please ensure that the data is normalized using standard scaling (or another suitable normalization method), as ElasticNet assumes that the model intercept has already been accounted for.
 
 ```python
 from oikan import OIKANRegressor
@@ -153,7 +153,7 @@ loaded_model.load("outputs/model.json")
 
 ### Classification Example
 
-> **Suggestion:** Please ensure that the data is normalized using standard scaling (or another suitable normalization method), as Elastic Net assumes that the model intercept has already been accounted for.
+> **Suggestion:** Please ensure that the data is normalized using standard scaling (or another suitable normalization method), as ElasticNet assumes that the model intercept has already been accounted for.
 
 ```python
 from oikan import OIKANClassifier
