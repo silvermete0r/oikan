@@ -21,7 +21,7 @@ X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, 
 model = OIKANRegressor(
     hidden_sizes=[32, 32], 
     activation='relu', 
-    augmentation_factor=5,
+    augmentation_factor=1,
     alpha=0.2, 
     l1_ratio=0.5,
     sigma=5, 
@@ -55,12 +55,12 @@ importances = model.feature_importances()
 print("Feature Importances:", importances)
 
 # Save the model (optional)
-model.save("../outputs/california_housing_model.json")
+model.save("outputs/california_housing_model.json")
 
 # Load the model (optional)
 print("Loaded Model:")
 loaded_model = OIKANRegressor()
-loaded_model.load("../outputs/california_housing_model.json")
+loaded_model.load("outputs/california_housing_model.json")
 formula_loaded = loaded_model.get_formula(type='original')
 print("Symbolic Formula (loaded):", formula_loaded)
 

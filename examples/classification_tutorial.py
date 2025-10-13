@@ -19,7 +19,7 @@ X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, 
 model = OIKANClassifier(
     hidden_sizes=[32, 32], 
     activation='relu',
-    augmentation_factor=5,
+    augmentation_factor=1,
     alpha=0.1,
     l1_ratio=0.5,
     sigma=3,
@@ -55,12 +55,12 @@ importances = model.feature_importances()
 print("Feature Importances:", importances)
 
 # Save the model (optional)
-model.save("../outputs/iris_model.json")
+model.save("outputs/iris_model.json")
 
 # Load the model (optional)
 print("Loaded Model:")
 loaded_model = OIKANClassifier()
-loaded_model.load("../outputs/iris_model.json")
+loaded_model.load("outputs/iris_model.json")
 formulas_loaded = loaded_model.get_formula(type='original')
 for formula in formulas_loaded:
     print(formula)
