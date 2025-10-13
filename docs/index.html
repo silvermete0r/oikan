@@ -202,7 +202,7 @@ from sklearn.metrics import accuracy_score
 model = OIKANClassifier(
     hidden_sizes=[32, 32], # Hidden layer sizes
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
-    augmentation_factor=10, # Augmentation factor for data generation
+    augmentation_factor=10, # Augmentation factor for data generation (default: 1)
     alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
     l1_ratio=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
     sigma=5, # Standard deviation of Gaussian noise for data augmentation
@@ -212,7 +212,7 @@ model = OIKANClassifier(
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
     evaluate_nn=True, # Validate neural network performance before full process
-    random_state=42 # Random seed for reproducibility
+    random_state=42 # Random seed for reproducibility (default: 42)
 )
 
 # Fit the model
@@ -328,7 +328,7 @@ if __name__ == "__main__":
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <h3 class="text-lg font-semibold mb-4">About OIKAN</h3>
-                    <p class="text-gray-400">OIKAN is a neuro-symbolic ML framework inspired by Kolmogorov-Arnold representation theorem. OIKAN is designed to make machine learning models both accurate and Interpretable.</p>
+                    <p class="text-gray-400">OIKAN is a neuro-symbolic ML framework designed to make machine learning models both accurate and Interpretable.</p>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Quick Links</h3>

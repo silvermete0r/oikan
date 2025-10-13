@@ -41,12 +41,9 @@ OIKAN is a neuro-symbolic machine learning framework inspired by Kolmogorov-Arno
     class OIKAN:
         def __init__(self, hidden_sizes=[64, 64], activation='relu',
                     polynomial_degree=2, alpha=0.1):
-            # Neural network for learning complex patterns
-            self.neural_net = TabularNet(input_size, hidden_sizes, activation)
-            # Data augmentation for better coverage
-            self.augmented_data = self.augment_data(X, y, augmentation_factor=5)
-            # Symbolic regression for interpretable formulas
-            self.symbolic_regression = SymbolicRegression(alpha=alpha, l1_ratio=0.5)
+            self.neural_net = TabularNet(input_size, hidden_sizes, activation) # NN for predicting values in Data Augmentation (Additional)
+            self.augmented_data = self.augment_data(X, y, augmentation_factor=5) # Generate augmented samples (Additional)
+            self.symbolic_regression = SymbolicRegression(alpha=alpha, l1_ratio=0.5) # ElasticNet for symbolic regression (Main part)
    ```
 
 2. **Basis Functions**: Core set of interpretable transformations:
@@ -90,7 +87,7 @@ pip install -e .  # Install in development mode
 
 | Requirement       | Details                              |
 |-------------------|--------------------------------------|
-| Python            | Version 3.7 or higher               |
+| Python            | Version 3.11 or higher               |
 | Operating System  | Platform independent (Windows/macOS/Linux) |
 | Memory            | Recommended minimum 4GB RAM         |
 | Disk Space        | ~100MB for installation (including dependencies) |
@@ -109,7 +106,7 @@ from sklearn.metrics import mean_squared_error
 model = OIKANRegressor(
     hidden_sizes=[32, 32], # Hidden layer sizes
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
-    augmentation_factor=5, # Augmentation factor for data generation
+    augmentation_factor=5, # Augmentation factor for data generation (default: 1)
     alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
     l1_ratio=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
     sigma=5, # Standard deviation of Gaussian noise for data augmentation
@@ -119,7 +116,7 @@ model = OIKANRegressor(
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
     evaluate_nn=True, # Validate neural network performance before full process
-    random_state=42 # Random seed for reproducibility
+    random_state=42 # Random seed for reproducibility (default: 42)
 )
 
 # Fit the model
@@ -163,7 +160,7 @@ from sklearn.metrics import accuracy_score
 model = OIKANClassifier(
     hidden_sizes=[32, 32], # Hidden layer sizes
     activation='relu', # Activation function (other options: 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu')
-    augmentation_factor=10, # Augmentation factor for data generation
+    augmentation_factor=10, # Augmentation factor for data generation (default: 1)
     alpha=1.0, # ElasticNet regularization strength (Symbolic regression)
     l1_ratio=0.5, # ElasticNet mixing parameter (0 <= l1_ratio <= 1). 0 is equivalent to Ridge regression, 1 is equivalent to Lasso (Symbolic regression)
     sigma=5, # Standard deviation of Gaussian noise for data augmentation
@@ -173,7 +170,7 @@ model = OIKANClassifier(
     batch_size=32, # Batch size for training
     verbose=True, # Verbose output during training
     evaluate_nn=True, # Validate neural network performance before full process
-    random_state=42 # Random seed for reproducibility
+    random_state=42 # Random seed for reproducibility (default: 42)
 )
 
 # Fit the model

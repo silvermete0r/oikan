@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 class ElasticNet(nn.Module):
-    def __init__(self, alpha=1.0, l1_ratio=0.5, fit_intercept=False, max_iter=5000, tol=1e-4, random_state=None):
+    def __init__(self, alpha=1.0, l1_ratio=0.5, fit_intercept=False, max_iter=5000, tol=1e-4, random_state=42):
         super().__init__()
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -21,10 +21,9 @@ class ElasticNet(nn.Module):
         if y.ndim == 1:
             y = y.reshape(-1, 1)
         n_targets = y.shape[1]
-
-        if self.random_state is not None:
-            torch.manual_seed(self.random_state)
-            np.random.seed(self.random_state)
+        
+        torch.manual_seed(self.random_state)
+        np.random.seed(self.random_state)
 
         X_tensor = torch.tensor(X, dtype=torch.float32)
         y_tensor = torch.tensor(y, dtype=torch.float32)
@@ -64,8 +63,9 @@ class ElasticNet(nn.Module):
         X = np.asarray(X, dtype=np.float32)
         if self.coef_ is None:
             raise RuntimeError("Model not fitted yet.")
-        W = self.coef_.T if self.coef_.ndim == 2 else self.coef_
-        y_pred = X @ W
-        if self.intercept_ is not None:
-            y_pred += self.intercept_
+        with torch.no_grad():
+            W = self.coef_.T if self.coef_.ndim == 2 else self.coef_
+            y_pred = X @ W
+            if self.intercept_ is not None:
+                y_pred += self.intercept_
         return y_pred

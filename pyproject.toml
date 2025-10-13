@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oikan"
-version = "0.0.3.11"
+version = "0.0.3.12"
 description = "OIKAN: Neuro-Symbolic ML for Scientific Discovery"
 readme = "README.md"
 authors = [{name = "Arman Zhalgasbayev"}]
@@ -15,7 +15,7 @@ dependencies = [
     "tqdm",
     "sympy"
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",

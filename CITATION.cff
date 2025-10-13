@@ -1,0 +1,36 @@
+cff-version: 0.0.3.12
+message: "If you use this software, please cite the following."
+
+title: "OIKAN: A Hybrid AI Framework Combining Symbolic Inference and Deep Learning for Interpretable Information Retrieval Models"
+version: "0.0.3"
+repository-code: "https://github.com/silvermete0r/oikan"
+repository-release: "https://github.com/silvermete0r/oikan/releases"
+license: "MIT" 
+
+date-released: 2025-05-09
+date-updated: 2025-10-14
+
+authors:
+  - family-names: "Yedilkhan"
+    given-names: "Didar"
+    orcid: "https://orcid.org/0000-0002-6343-5277"
+  - family-names: "Zhalgasbayev"
+    given-names: "Arman"
+    orcid: "https://orcid.org/0000-0001-8507-6845"
+  - family-names: "Saleshova"
+    given-names: "Sabina"
+    orcid: "https://orcid.org/0009-0000-2387-7532"
+  - family-names: "Khaimuldin"
+    given-names: "Nursultan"
+    orcid: "https://orcid.org/0000-0002-3767-4418"
+
+identifiers:
+  - type: doi
+    value: "10.3390/a18100639"
+  - type: url
+    value: "https://www.mdpi.com/1999-4893/18/10/639"
+
+keywords:
+  - neuro-symbolic ML framework
+  - symbolic regression
+  - interpretable machine learning

@@ -2,16 +2,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from abc import ABC, abstractmethod
+from tqdm import tqdm
 import json
+import sys
+from abc import ABC, abstractmethod
+from typing import List, Optional, Union
 from .elasticnet import ElasticNet
 from .neural import TabularNet
 from .utils import evaluate_basis_functions, get_features_involved, sympify_formula, get_latex_formula
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, accuracy_score
 from .exceptions import *
-import sys
-from tqdm import tqdm
 
 class OIKAN(ABC):
     """
@@ -23,7 +24,7 @@ class OIKAN(ABC):
         List of hidden layer sizes for the neural network.
     activation : str, optional (default='relu')
         Activation function for the neural network ('relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu').
-    augmentation_factor : int, optional (default=10)
+    augmentation_factor : int, optional (default=1)
         Number of augmented samples per original sample.
     alpha : float, optional (default=1.0)
         ElasticNet regularization strength.
@@ -44,33 +45,34 @@ class OIKAN(ABC):
         Whether to display training progress.
     evaluate_nn : bool, optional (default=False)
         Whether to evaluate neural network performance before full training.
-    random_state: int, optional (default=None)
+    random_state: int, optional (default=42)
         Random seed for reproducibility.
     """
-    def __init__(self, hidden_sizes=[64, 64], activation='relu', augmentation_factor=10, 
-                 alpha=1.0, l1_ratio=0.5, sigma=5.0, epochs=100, lr=0.001, batch_size=32, 
-                 verbose=False, evaluate_nn=False, top_k=5, random_state=None):
+    def __init__(
+        self,
+        hidden_sizes: List[int] = [64, 64],
+        activation: str = 'relu',
+        augmentation_factor: int = 1,
+        alpha: float = 1.0,
+        l1_ratio: float = 0.5,
+        sigma: float = 5.0,
+        epochs: int = 100,
+        lr: float = 0.001,
+        batch_size: int = 32,
+        verbose: bool = False,
+        evaluate_nn: bool = False,
+        top_k: int = 5,
+        random_state: int = 42
+    ) -> None:
         if not isinstance(hidden_sizes, list) or not all(isinstance(x, int) and x > 0 for x in hidden_sizes):
             raise InvalidParameterError("hidden_sizes must be a list of positive integers")
         if activation not in ['relu', 'tanh', 'leaky_relu', 'elu', 'swish', 'gelu']:
             raise InvalidParameterError(f"Unsupported activation function: {activation}")
-        if not isinstance(augmentation_factor, int) or augmentation_factor < 1:
-            raise InvalidParameterError("augmentation_factor must be a positive integer")
-        if not isinstance(top_k, int) or top_k < 1:
-            raise InvalidParameterError("top_k must be a positive integer")
-        if not 0 < lr < 1:
-            raise InvalidParameterError("Learning rate must be between 0 and 1")
-        if not isinstance(batch_size, int) or batch_size < 1:
-            raise InvalidParameterError("batch_size must be a positive integer")
-        if not isinstance(epochs, int) or epochs < 1:
-            raise InvalidParameterError("epochs must be a positive integer")
-        if not 0 <= alpha <= 1:
-            raise InvalidParameterError("alpha must be between 0 and 1")
-        if not 0 <= l1_ratio <= 1:
-            raise InvalidParameterError("l1_ratio must be between 0 and 1")
-        if sigma <= 0:
-            raise InvalidParameterError("sigma must be positive")
-        
+        if augmentation_factor < 1 or top_k < 1 or batch_size < 1 or epochs < 1:
+            raise InvalidParameterError("augmentation_factor, top_k, batch_size, and epochs must be positive integers")
+        if not 0 < lr < 1 or not 0 <= alpha <= 1 or not 0 <= l1_ratio <= 1 or sigma <= 0:
+            raise InvalidParameterError("Invalid values for lr, alpha, l1_ratio, or sigma")
+
         self.hidden_sizes = hidden_sizes
         self.activation = activation
         self.augmentation_factor = augmentation_factor
@@ -83,25 +85,24 @@ class OIKAN(ABC):
         self.verbose = verbose
         self.evaluate_nn = evaluate_nn
         self.top_k = top_k
-        self.neural_net = None
-        self.symbolic_model = None
+        self.neural_net: Optional[TabularNet] = None
+        self.symbolic_model: Optional[dict] = None
         self.evaluation_done = False
         self.random_state = random_state
         self.__version__ = '0.0.3'
-        
-        if self.random_state is not None:
-            torch.manual_seed(self.random_state)
-            np.random.seed(self.random_state)
+
+        torch.manual_seed(self.random_state)
+        np.random.seed(self.random_state)
 
     @abstractmethod
-    def fit(self, X, y):
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         pass
 
     @abstractmethod
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         pass
 
-    def get_formula(self, type='original'): 
+    def get_formula(self, type: str = 'original') -> Union[str, List[str]]:
         """
         Returns the symbolic formula(s) as a string (regression) or list of strings (classification). 
         
@@ -149,19 +150,24 @@ class OIKAN(ABC):
                     formulas.append(f"Class {self.classes_[c]}: {formula}")
                 return formulas
 
-    def feature_importances(self):
+    def feature_importances(self, column_names: Optional[List[str]] = None) -> Union[np.ndarray, tuple]:
         """
         Computes the importance of each original feature based on the symbolic model.
         
         Returns:
         --------
-        numpy.ndarray : Normalized feature importances.
+        numpy.ndarray : Normalized feature importances. If column_names was provided, also returns a dict mapping feature name -> feature label (symbolic)
         """
         if self.symbolic_model is None:
             raise ValueError("Model not fitted yet.")
         basis_functions = self.symbolic_model['basis_functions']
         n_features = self.symbolic_model['n_features']
         importances = np.zeros(n_features)
+
+        # Validation of column names
+        if column_names is not None:
+            if not hasattr(column_names, '__len__') or len(column_names) != n_features:
+                raise InvalidParameterError("column_names must be a sequence with length equal to number of features")
         
         # Handle regression case
         if 'coefficients' in self.symbolic_model:
@@ -170,7 +176,8 @@ class OIKAN(ABC):
                 if coefficients[i] != 0:
                     features_involved = get_features_involved(func)
                     for idx in features_involved:
-                        importances[idx] += np.abs(coefficients[i])
+                        if 0 <= idx < n_features:
+                            importances[idx] += np.abs(coefficients[i])
         # Handle classification case with multiple coefficient sets
         else:
             for coef in self.symbolic_model['coefficients_list']:
@@ -178,12 +185,22 @@ class OIKAN(ABC):
                     if coef[i] != 0:
                         features_involved = get_features_involved(func)
                         for idx in features_involved:
-                            importances[idx] += np.abs(coef[i])
+                            if 0 <= idx < n_features:
+                                importances[idx] += np.abs(coef[i])
         
         total = importances.sum()
-        return importances / total if total > 0 else importances
+        normalized = importances / total if total > 0 else importances
+        
+        if column_names is not None:
+            feature_map = dict()
+            # map feature name -> formula label
+            for idx, feature_name in enumerate(column_names):
+                feature_map[feature_name] = f'x{idx}'
+            return normalized, feature_map
 
-    def save(self, path):
+        return normalized
+
+    def save(self, path: str) -> None:
         """
         Saves the symbolic model to a .json file.
         
@@ -220,7 +237,7 @@ class OIKAN(ABC):
         if self.verbose:
             print(f"Model saved to {path}")
 
-    def load(self, path):
+    def load(self, path: str) -> None:
         """
         Loads the symbolic model from a .json file.
         
@@ -253,9 +270,9 @@ class OIKAN(ABC):
         if self.verbose:
             print(f"Model loaded from {path}")
 
-    def _evaluate_neural_net(self, X, y, output_size, loss_fn):
+    def _evaluate_neural_net(self, X: np.ndarray, y: np.ndarray, output_size: int, loss_fn: nn.Module) -> None:
         """Evaluates neural network performance on train-test split."""
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=self.random_state)
         
         input_size = X.shape[1]
         self.neural_net = TabularNet(input_size, self.hidden_sizes, output_size, self.activation)
@@ -289,7 +306,7 @@ class OIKAN(ABC):
         # Retrain on full dataset
         self._train_neural_net(X, y, output_size, loss_fn)
 
-    def _train_neural_net(self, X, y, output_size, loss_fn):
+    def _train_neural_net(self, X: np.ndarray, y: np.ndarray, output_size: int, loss_fn: nn.Module) -> None:
         """Trains the neural network on the input data."""
         if self.evaluate_nn and not self.evaluation_done:
             self.evaluation_done = True
@@ -326,7 +343,7 @@ class OIKAN(ABC):
             if self.verbose:
                 epoch_iterator.set_postfix({'loss': f'{total_loss/len(loader):.4f}'})
 
-    def _generate_augmented_data(self, X):
+    def _generate_augmented_data(self, X: np.ndarray) -> np.ndarray:
         """Generates augmented data by adding Gaussian noise."""
         if self.augmentation_factor == 1:
             return np.array([]).reshape(0, X.shape[1])
@@ -339,7 +356,7 @@ class OIKAN(ABC):
 
         return np.vstack(X_aug)
 
-    def _perform_symbolic_regression(self, X, y):
+    def _perform_symbolic_regression(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Performs hierarchical symbolic regression using a two-stage approach.
         
@@ -475,7 +492,7 @@ class OIKAN(ABC):
                 'coefficients_list': coefficients_list
             }
     
-    def _print_system_info(self):
+    def _print_system_info(self) -> None:
         """Prints system information (for debugging purposes)."""
         import platform
         import os
@@ -493,7 +510,7 @@ class OIKAN(ABC):
 
 class OIKANRegressor(OIKAN):
     """OIKAN model for regression tasks."""
-    def fit(self, X, y):
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Fits the regressor to the data.
         
@@ -538,7 +555,7 @@ class OIKANRegressor(OIKAN):
         if self.verbose:
             print("OIKANRegressor model training completed successfully!")
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predicts target values for the input data.
         
@@ -561,7 +578,7 @@ class OIKANRegressor(OIKAN):
 
 class OIKANClassifier(OIKAN):
     """OIKAN model for classification tasks."""
-    def fit(self, X, y):
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Fits the classifier to the data.
         
@@ -611,7 +628,7 @@ class OIKANClassifier(OIKAN):
         if self.verbose:
             print("OIKANClassifier model training completed successfully!")
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predicts class labels for the input data.
         
